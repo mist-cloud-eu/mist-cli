@@ -1,0 +1,79 @@
+import { Command } from "typed-cmdargs";
+import { clone } from "../clone_utils";
+import { argParser } from "../parser";
+import { sshReq } from "../utils";
+
+class Org implements Command {
+  constructor(
+    private name: string,
+    private params: { join: OrganizationArg; delete: OrganizationDeleteArg }
+  ) {}
+  execute() {
+    return this.params.delete.execute(this.name, this.params.join);
+  }
+}
+
+interface OrganizationArg {
+  execute(name: string): Promise<void>;
+}
+class CreateOrganization implements OrganizationArg {
+  async execute(name: string) {
+    try {
+      let reply = await sshReq(`org ${name}`);
+      if (!reply.startsWith("{")) {
+        console.log(reply);
+        return;
+      }
+      let structure = JSON.parse(reply);
+      await clone(structure, name);
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+class JoinOrganization implements OrganizationArg {
+  async execute(name: string) {
+    try {
+      console.log(await sshReq(`org ${name} --join`));
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+
+interface OrganizationDeleteArg {
+  execute(name: string, join: OrganizationArg): Promise<void>;
+}
+class NoDeleteOrganization implements OrganizationDeleteArg {
+  execute(name: string, join: OrganizationArg) {
+    return join.execute(name);
+  }
+}
+class DeleteOrganization implements OrganizationDeleteArg {
+  async execute(name: string, join: OrganizationArg) {
+    try {
+      console.log(await sshReq(`org ${name} --delete`));
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+
+argParser.push("org", {
+  desc: "Create an organization",
+  arg: "name",
+  construct: (arg, params) => new Org(arg, params),
+  flags: {
+    join: {
+      short: "j",
+      desc: "Join an existing organization",
+      defaultValue: new CreateOrganization(),
+      overrideValue: new JoinOrganization(),
+    },
+    delete: {
+      desc: "Delete the organization",
+      defaultValue: new NoDeleteOrganization(),
+      overrideValue: new DeleteOrganization(),
+    },
+  },
+});

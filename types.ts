@@ -1,0 +1,3 @@
+interface OrgFile {
+  name: string;
+}
