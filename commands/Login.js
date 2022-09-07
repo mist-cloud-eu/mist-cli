@@ -27,7 +27,9 @@ class Login {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 console.log(`By using this product you agree to let Mistware (http://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (http://mist-cloud.eu).`);
+                console.log();
                 let key = yield this.params.key.getKey();
+                console.log();
                 console.log(yield (0, utils_1.urlReq)(`${config_1.HTTP_HOST}/admin/user`, "POST", {
                     email: this.email,
                     key,
@@ -63,6 +65,8 @@ class AskForKey {
                         result = key;
                     }
                     else {
+                        if (!fs_1.default.existsSync(os_1.default.homedir() + "/.ssh"))
+                            fs_1.default.mkdirSync(os_1.default.homedir() + "/.ssh");
                         yield (0, utils_1.execPromise)(`ssh-keygen -t rsa -b 4096 -f "${os_1.default.homedir()}/.ssh/id_rsa" -N ""`);
                         result = "" + fs_1.default.readFileSync(os_1.default.homedir() + "/.ssh/id_rsa.pub");
                     }
