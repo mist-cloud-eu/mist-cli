@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const clone_utils_1 = require("../clone_utils");
 const parser_1 = require("../parser");
@@ -22,33 +13,29 @@ class Org {
     }
 }
 class CreateOrganization {
-    execute(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                let reply = yield (0, utils_1.sshReq)(`org ${name}`);
-                if (!reply.startsWith("{")) {
-                    console.log(reply);
-                    return;
-                }
-                let structure = JSON.parse(reply);
-                yield (0, clone_utils_1.clone)(structure, name);
+    async execute(name) {
+        try {
+            let reply = await (0, utils_1.sshReq)(`org ${name}`);
+            if (!reply.startsWith("{")) {
+                console.log(reply);
+                return;
             }
-            catch (e) {
-                throw e;
-            }
-        });
+            let structure = JSON.parse(reply);
+            await (0, clone_utils_1.clone)(structure, name);
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 class JoinOrganization {
-    execute(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log(yield (0, utils_1.sshReq)(`org ${name} --join`));
-            }
-            catch (e) {
-                throw e;
-            }
-        });
+    async execute(name) {
+        try {
+            console.log(await (0, utils_1.sshReq)(`org ${name} --join`));
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 class NoDeleteOrganization {
@@ -57,15 +44,13 @@ class NoDeleteOrganization {
     }
 }
 class DeleteOrganization {
-    execute(name, join) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log(yield (0, utils_1.sshReq)(`org ${name} --delete`));
-            }
-            catch (e) {
-                throw e;
-            }
-        });
+    async execute(name, join) {
+        try {
+            console.log(await (0, utils_1.sshReq)(`org ${name} --delete`));
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 parser_1.argParser.push("org", {

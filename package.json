@@ -1,7 +1,7 @@
 {
-  "name": "@mistware/mist-cli",
-  "version": "1.0.0",
-  "description": "Coming soon!",
+  "name": "@mistware_internal/mist-cli",
+  "version": "1.0.9",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,16 +9,9 @@
   "bin": {
     "mist": "./index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mistware-eu/mist-cli.git"
-  },
-  "author": "mistware <https://mistware.eu>",
+  "keywords": [],
+  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Mistware-eu/mist-cli/issues"
-  },
-  "homepage": "https://github.com/Mistware-eu/mist-cli#readme",
   "dependencies": {
     "express": "^4.17.3",
     "typed-cmdargs": "^2.0.0"

@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -23,68 +14,66 @@ class Login {
         this.email = email;
         this.params = params;
     }
-    execute() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log(`By using this product you agree to let Mistware (http://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (http://mist-cloud.eu).`);
-                let key = yield this.params.key.getKey();
-                console.log(yield (0, utils_1.urlReq)(`${config_1.HTTP_HOST}/admin/user`, "POST", {
-                    email: this.email,
-                    key,
-                }));
-            }
-            catch (e) {
-                throw e;
-            }
-        });
+    async execute() {
+        try {
+            console.log(`By using this product you agree to let Mistware (http://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (http://mist-cloud.eu).`);
+            console.log();
+            let key = await this.params.key.getKey();
+            console.log();
+            console.log(await (0, utils_1.urlReq)(`${config_1.HTTP_HOST}/admin/user`, "POST", {
+                email: this.email,
+                key,
+            }));
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 class AskForKey {
-    getKey() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                let result;
-                const readline = readline_1.default.createInterface({
-                    input: process.stdin,
-                    output: process.stdout,
-                });
-                if (fs_1.default.existsSync(os_1.default.homedir() + "/.ssh/id_rsa.pub")) {
-                    let key = yield ask(readline, "Press enter to fetch key from file, or provide a public key manually: ");
-                    if (key !== "") {
-                        result = key;
-                    }
-                    else {
-                        result = "" + fs_1.default.readFileSync(os_1.default.homedir() + "/.ssh/id_rsa.pub");
-                    }
+    async getKey() {
+        try {
+            let result;
+            const readline = readline_1.default.createInterface({
+                input: process.stdin,
+                output: process.stdout,
+            });
+            if (fs_1.default.existsSync(os_1.default.homedir() + "/.ssh/id_rsa.pub")) {
+                let key = await ask(readline, "Press enter to fetch key from file, or provide a public key manually: ");
+                if (key !== "") {
+                    result = key;
                 }
                 else {
-                    let key = yield ask(readline, "Press enter to generate an RSA key-pair, or provide a public key manually: ");
-                    if (key !== "") {
-                        result = key;
-                    }
-                    else {
-                        yield (0, utils_1.execPromise)(`ssh-keygen -t rsa -b 4096 -f "${os_1.default.homedir()}/.ssh/id_rsa" -N ""`);
-                        result = "" + fs_1.default.readFileSync(os_1.default.homedir() + "/.ssh/id_rsa.pub");
-                    }
+                    result = "" + fs_1.default.readFileSync(os_1.default.homedir() + "/.ssh/id_rsa.pub");
                 }
-                readline.close();
-                readline.removeAllListeners();
-                return result;
             }
-            catch (e) {
-                throw e;
+            else {
+                let key = await ask(readline, "Press enter to generate an RSA key-pair, or provide a public key manually: ");
+                if (key !== "") {
+                    result = key;
+                }
+                else {
+                    if (!fs_1.default.existsSync(os_1.default.homedir() + "/.ssh"))
+                        fs_1.default.mkdirSync(os_1.default.homedir() + "/.ssh");
+                    await (0, utils_1.execPromise)(`ssh-keygen -t rsa -b 4096 -f "${os_1.default.homedir()}/.ssh/id_rsa" -N ""`);
+                    result = "" + fs_1.default.readFileSync(os_1.default.homedir() + "/.ssh/id_rsa.pub");
+                }
             }
-        });
+            readline.close();
+            readline.removeAllListeners();
+            return result;
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 class ProvidedKey {
     constructor(key) {
         this.key = key;
     }
-    getKey() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.key;
-        });
+    async getKey() {
+        return this.key;
     }
 }
 function ask(readline, q) {

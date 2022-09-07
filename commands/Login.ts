@@ -13,7 +13,9 @@ class Login implements Command {
       console.log(
         `By using this product you agree to let Mistware (http://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (http://mist-cloud.eu).`
       );
+      console.log();
       let key = await this.params.key.getKey();
+      console.log();
       console.log(
         await urlReq(`${HTTP_HOST}/admin/user`, "POST", {
           email: this.email,
@@ -55,6 +57,8 @@ class AskForKey implements KeyParameter {
         if (key !== "") {
           result = key;
         } else {
+          if (!fs.existsSync(os.homedir() + "/.ssh"))
+            fs.mkdirSync(os.homedir() + "/.ssh");
           await execPromise(
             `ssh-keygen -t rsa -b 4096 -f "${os.homedir()}/.ssh/id_rsa" -N ""`
           );

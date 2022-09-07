@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -21,52 +12,50 @@ class Run {
     constructor(params) {
         this.params = params;
     }
-    execute() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { pathToRoot } = (0, utils_1.fetchOrg)();
-                let teams = fs_1.default.readdirSync(pathToRoot);
-                teams.splice(teams.indexOf(".mist"), 1);
-                teams.splice(teams.indexOf("events"), 1);
-                processFolders(pathToRoot, teams, new PublicHooks(pathToRoot));
-                const app = (0, express_1.default)();
-                app.use(express_1.default.json());
-                app.post("/trace/:traceId/:event", (req, res) => {
-                    let traceId = req.params.traceId;
-                    let event = req.params.event;
-                    let payload = req.body;
-                    runService(this.params.port, event, payload, traceId);
-                    res.send("Done");
-                });
-                app.post("/rapid/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
-                    let event = req.params.event;
-                    let payload = req.body;
-                    let traceId = "s" + Math.random();
-                    let response = yield runWithReply(this.params.port, res, event, payload, traceId);
-                }));
-                app.get("/rapid", (req, res) => {
-                    res.send("Running...");
-                });
-                app.listen(this.params.port, () => {
-                    console.log("");
-                    console.log("              .8.                                8                        8 ");
-                    console.log('              "8"            od8                 8                        8 ');
-                    console.log("                             888                 8                        8 ");
-                    console.log("88d88b.d88b.  888 .d8888b  88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
-                    console.log('888 "888 "88b 888 88K        888         d"    " 8 d"    "b 8     8 d"    8 ');
-                    console.log('888  888  888 888 "Y8888b.   888  888888 8       8 8      8 8     8 8     8 ');
-                    console.log("888  888  888 888      X88   Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
-                    console.log('888  888  888 888  88888P\'   "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
-                    console.log("");
-                    console.log(`Running local Rapid on http://localhost:${this.params.port}/rapid`);
-                    console.log(`To exit, press ctrl+c`);
-                    console.log("");
-                });
-            }
-            catch (e) {
-                throw e;
-            }
-        });
+    async execute() {
+        try {
+            const { pathToRoot } = (0, utils_1.fetchOrg)();
+            let teams = fs_1.default.readdirSync(pathToRoot);
+            teams.splice(teams.indexOf(".mist"), 1);
+            teams.splice(teams.indexOf("events"), 1);
+            processFolders(pathToRoot, teams, new PublicHooks(pathToRoot));
+            const app = (0, express_1.default)();
+            app.use(express_1.default.json());
+            app.post("/trace/:traceId/:event", (req, res) => {
+                let traceId = req.params.traceId;
+                let event = req.params.event;
+                let payload = req.body;
+                runService(this.params.port, event, payload, traceId);
+                res.send("Done");
+            });
+            app.post("/rapid/:event", async (req, res) => {
+                let event = req.params.event;
+                let payload = req.body;
+                let traceId = "s" + Math.random();
+                let response = await runWithReply(this.params.port, res, event, payload, traceId);
+            });
+            app.get("/rapid", (req, res) => {
+                res.send("Running...");
+            });
+            app.listen(this.params.port, () => {
+                console.log("");
+                console.log("              .8.                                8                        8 ");
+                console.log('              "8"            od8                 8                        8 ');
+                console.log("                             888                 8                        8 ");
+                console.log("88d88b.d88b.  888 .d8888b  88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
+                console.log('888 "888 "88b 888 88K        888         d"    " 8 d"    "b 8     8 d"    8 ');
+                console.log('888  888  888 888 "Y8888b.   888  888888 8       8 8      8 8     8 8     8 ');
+                console.log("888  888  888 888      X88   Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
+                console.log('888  888  888 888  88888P\'   "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
+                console.log("");
+                console.log(`Running local Rapid on http://localhost:${this.params.port}/rapid`);
+                console.log(`To exit, press ctrl+c`);
+                console.log("");
+            });
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 const MAX_WAIT = 30000;
@@ -143,7 +132,10 @@ function runService(port, event, payload, traceId) {
         const args = [...rest, service.action, envelope];
         const options = {
             cwd: service.dir,
-            env: Object.assign(Object.assign({}, process.env), { RAPID: `http://localhost:${port}/trace/${traceId}` }),
+            env: {
+                ...process.env,
+                RAPID: `http://localhost:${port}/trace/${traceId}`,
+            },
         };
         // console.log(service);
         // let ls = spawn(NPM_CMD, args, options);
@@ -177,32 +169,30 @@ function sleep(duration) {
 function reply(res, response) {
     res.status(response.code).send(response.data);
 }
-function runWithReply(port, resp, event, payload, traceId) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let rivers = hooks[event];
-        runService(port, event, payload, traceId);
-        if (rivers === undefined)
-            return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
-        pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
-        if (rivers.replyCount !== undefined) {
-            yield sleep(rivers.waitFor || MAX_WAIT);
-            let rs = pendingReplies[traceId];
-            if (rs !== undefined) {
-                delete pendingReplies[traceId];
-                reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
-            }
-        }
-        else if (rivers.waitFor !== undefined) {
-            yield sleep(rivers.waitFor);
-            let rs = pendingReplies[traceId];
+async function runWithReply(port, resp, event, payload, traceId) {
+    let rivers = hooks[event];
+    runService(port, event, payload, traceId);
+    if (rivers === undefined)
+        return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
+    pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
+    if (rivers.replyCount !== undefined) {
+        await sleep(rivers.waitFor || MAX_WAIT);
+        let rs = pendingReplies[traceId];
+        if (rs !== undefined) {
             delete pendingReplies[traceId];
             reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
         }
-        else {
-            delete pendingReplies[traceId];
-            reply(resp, HTTP.SUCCESS.QUEUE_JOB);
-        }
-    });
+    }
+    else if (rivers.waitFor !== undefined) {
+        await sleep(rivers.waitFor);
+        let rs = pendingReplies[traceId];
+        delete pendingReplies[traceId];
+        reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
+    }
+    else {
+        delete pendingReplies[traceId];
+        reply(resp, HTTP.SUCCESS.QUEUE_JOB);
+    }
 }
 parser_1.argParser.push("run", {
     desc: "Run system locally",
