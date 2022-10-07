@@ -1,10 +1,14 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, partition } from "../utils";
+import { fetchOrg } from "../utils";
 import express from "express";
 import { Response } from "express";
 import fs from "fs";
 import { spawn, ExecOptions } from "child_process";
+import {
+  detectProjectType,
+  RUN_COMMAND,
+} from "@mist-cloud-eu/project-type-detect";
 
 class Run implements Command {
   constructor(private params: { port: number }) {}
@@ -15,20 +19,23 @@ class Run implements Command {
       let teams = fs.readdirSync(pathToRoot);
       teams.splice(teams.indexOf(".mist"), 1);
       teams.splice(teams.indexOf("events"), 1);
-      processFolders(pathToRoot, teams, new PublicHooks(pathToRoot));
 
       const app = express();
       app.use(express.json());
+
+      let hooks: PublicHooks;
 
       app.post("/trace/:traceId/:event", (req, res) => {
         let traceId = req.params.traceId;
         let event = req.params.event;
         let payload = req.body;
-        runService(this.params.port, event, payload, traceId);
+        runService(this.params.port, event, payload, traceId, hooks);
         res.send("Done");
       });
 
       app.post("/rapid/:event", async (req, res) => {
+        hooks = new PublicHooks(pathToRoot);
+        processFolders(pathToRoot, teams, hooks);
         let event = req.params.event;
         let payload = req.body;
         let traceId = "s" + Math.random();
@@ -37,7 +44,8 @@ class Run implements Command {
           res,
           event,
           payload,
-          traceId
+          traceId,
+          hooks
         );
       });
 
@@ -85,7 +93,6 @@ class Run implements Command {
 }
 
 const MAX_WAIT = 30000;
-const NPM_CMD = process.platform === "win32" ? "npm.cmd" : "npm";
 const Reset = "\x1b[0m";
 const FgRed = "\x1b[31m";
 
@@ -94,13 +101,6 @@ interface Hook {
   cmd: string;
   action: string;
 }
-let hooks: {
-  [event: string]: {
-    replyCount: number | undefined;
-    waitFor: number | undefined;
-    hooks: { [river: string]: Hook[] };
-  };
-} = {};
 let pendingReplies: {
   [traceId: string]: { resp: Response; count?: number; replies: any[] };
 } = {};
@@ -112,16 +112,23 @@ class PublicHooks {
       waitFor: number | undefined;
     };
   };
+  private hooks: {
+    [event: string]: {
+      replyCount: number | undefined;
+      waitFor: number | undefined;
+      hooks: { [river: string]: Hook[] };
+    };
+  } = {};
   constructor(pathToRoot: string) {
     this.publicEvents = JSON.parse(
-      "" + fs.readFileSync(`${pathToRoot}/events/config.json`)
+      "" + fs.readFileSync(`${pathToRoot}/events/mist.json`)
     );
   }
 
   register(event: string, river: string, hook: Hook) {
     let evt =
-      hooks[event] ||
-      (hooks[event] = {
+      this.hooks[event] ||
+      (this.hooks[event] = {
         replyCount: this.publicEvents[event]?.replyCount,
         waitFor: this.publicEvents[event]?.waitFor,
         hooks: {},
@@ -129,16 +136,18 @@ class PublicHooks {
     let rvr = evt.hooks[river] || (evt.hooks[river] = []);
     rvr.push(hook);
   }
+
+  riversFor(event: string) {
+    return this.hooks[event];
+  }
 }
 
 function processFolder(folder: string, hooks: PublicHooks) {
-  if (fs.existsSync(`${folder}/config.json`)) {
-    let pkg: { scripts: { start: string } } = JSON.parse(
-      "" + fs.readFileSync(`${folder}/package.json`)
-    );
-    let cmd = pkg.scripts.start;
+  if (fs.existsSync(`${folder}/mist.json`)) {
+    let projectType = detectProjectType(folder);
+    let cmd = RUN_COMMAND[projectType](folder);
     let config: { hooks: { [key: string]: string } } = JSON.parse(
-      "" + fs.readFileSync(`${folder}/config.json`)
+      "" + fs.readFileSync(`${folder}/mist.json`)
     );
     Object.keys(config.hooks).forEach((k) => {
       let [river, event] = k.split("/");
@@ -155,7 +164,7 @@ function processFolder(folder: string, hooks: PublicHooks) {
 }
 
 function processFolders(prefix: string, folders: string[], hooks: PublicHooks) {
-  folders.forEach((folder) => processFolder(prefix + "/" + folder, hooks));
+  folders.forEach((folder) => processFolder(prefix + folder + "/", hooks));
 }
 
 let spacerTimer: undefined | NodeJS.Timeout;
@@ -169,7 +178,8 @@ function runService(
   port: number,
   event: string,
   payload: any,
-  traceId: string
+  traceId: string,
+  hooks: PublicHooks
 ) {
   let rs = pendingReplies[traceId];
   if (event === "reply" && rs !== undefined) {
@@ -179,15 +189,14 @@ function runService(
       reply(rs.resp, HTTP.SUCCESS.REPLY(rs.replies));
     }
   }
-  let rivers = hooks[event]?.hooks;
+  let rivers = hooks.riversFor(event)?.hooks;
   if (rivers === undefined) return;
   let messageId = "m" + Math.random();
   let envelope = JSON.stringify({ payload, messageId, traceId });
   Object.keys(rivers).forEach((river) => {
     let services = rivers[river];
     let service = services[~~(Math.random() * services.length)];
-    // const args = ["start", "--silent", service.action, envelope];
-    let [cmd, ...rest] = partition(service.cmd, " ");
+    let [cmd, ...rest] = service.cmd.split(" ");
     const args = [...rest, service.action, envelope];
     const options: ExecOptions = {
       cwd: service.dir,
@@ -196,8 +205,7 @@ function runService(
         RAPID: `http://localhost:${port}/trace/${traceId}`,
       },
     };
-    // console.log(service);
-    // let ls = spawn(NPM_CMD, args, options);
+    if (process.env["DEBUG"]) console.log(cmd, args);
     let ls = spawn(cmd, args, options);
     ls.stdout.on("data", (data) => {
       output(service.dir + (": " + data).trimEnd());
@@ -240,11 +248,12 @@ async function runWithReply(
   resp: Response,
   event: string,
   payload: any,
-  traceId: string
+  traceId: string,
+  hooks: PublicHooks
 ) {
-  let rivers = hooks[event];
-  runService(port, event, payload, traceId);
+  let rivers = hooks.riversFor(event);
   if (rivers === undefined) return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
+  runService(port, event, payload, traceId, hooks);
   pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
   if (rivers.replyCount !== undefined) {
     await sleep(rivers.waitFor || MAX_WAIT);

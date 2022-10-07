@@ -17,6 +17,7 @@ const utils_1 = require("../utils");
 const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const child_process_1 = require("child_process");
+const project_type_detect_1 = require("@mist-cloud-eu/project-type-detect");
 class Run {
     constructor(params) {
         this.params = params;
@@ -28,21 +29,23 @@ class Run {
                 let teams = fs_1.default.readdirSync(pathToRoot);
                 teams.splice(teams.indexOf(".mist"), 1);
                 teams.splice(teams.indexOf("events"), 1);
-                processFolders(pathToRoot, teams, new PublicHooks(pathToRoot));
                 const app = (0, express_1.default)();
                 app.use(express_1.default.json());
+                let hooks;
                 app.post("/trace/:traceId/:event", (req, res) => {
                     let traceId = req.params.traceId;
                     let event = req.params.event;
                     let payload = req.body;
-                    runService(this.params.port, event, payload, traceId);
+                    runService(this.params.port, event, payload, traceId, hooks);
                     res.send("Done");
                 });
                 app.post("/rapid/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
+                    hooks = new PublicHooks(pathToRoot);
+                    processFolders(pathToRoot, teams, hooks);
                     let event = req.params.event;
                     let payload = req.body;
                     let traceId = "s" + Math.random();
-                    let response = yield runWithReply(this.params.port, res, event, payload, traceId);
+                    let response = yield runWithReply(this.params.port, res, event, payload, traceId, hooks);
                 }));
                 app.get("/rapid", (req, res) => {
                     res.send("Running...");
@@ -70,19 +73,18 @@ class Run {
     }
 }
 const MAX_WAIT = 30000;
-const NPM_CMD = process.platform === "win32" ? "npm.cmd" : "npm";
 const Reset = "\x1b[0m";
 const FgRed = "\x1b[31m";
-let hooks = {};
 let pendingReplies = {};
 class PublicHooks {
     constructor(pathToRoot) {
-        this.publicEvents = JSON.parse("" + fs_1.default.readFileSync(`${pathToRoot}/events/config.json`));
+        this.hooks = {};
+        this.publicEvents = JSON.parse("" + fs_1.default.readFileSync(`${pathToRoot}/events/mist.json`));
     }
     register(event, river, hook) {
         var _a, _b;
-        let evt = hooks[event] ||
-            (hooks[event] = {
+        let evt = this.hooks[event] ||
+            (this.hooks[event] = {
                 replyCount: (_a = this.publicEvents[event]) === null || _a === void 0 ? void 0 : _a.replyCount,
                 waitFor: (_b = this.publicEvents[event]) === null || _b === void 0 ? void 0 : _b.waitFor,
                 hooks: {},
@@ -90,12 +92,15 @@ class PublicHooks {
         let rvr = evt.hooks[river] || (evt.hooks[river] = []);
         rvr.push(hook);
     }
+    riversFor(event) {
+        return this.hooks[event];
+    }
 }
 function processFolder(folder, hooks) {
-    if (fs_1.default.existsSync(`${folder}/config.json`)) {
-        let pkg = JSON.parse("" + fs_1.default.readFileSync(`${folder}/package.json`));
-        let cmd = pkg.scripts.start;
-        let config = JSON.parse("" + fs_1.default.readFileSync(`${folder}/config.json`));
+    if (fs_1.default.existsSync(`${folder}/mist.json`)) {
+        let projectType = (0, project_type_detect_1.detectProjectType)(folder);
+        let cmd = project_type_detect_1.RUN_COMMAND[projectType](folder);
+        let config = JSON.parse("" + fs_1.default.readFileSync(`${folder}/mist.json`));
         Object.keys(config.hooks).forEach((k) => {
             let [river, event] = k.split("/");
             let action = config.hooks[k];
@@ -111,7 +116,7 @@ function processFolder(folder, hooks) {
     }
 }
 function processFolders(prefix, folders, hooks) {
-    folders.forEach((folder) => processFolder(prefix + "/" + folder, hooks));
+    folders.forEach((folder) => processFolder(prefix + folder + "/", hooks));
 }
 let spacerTimer;
 function output(str) {
@@ -120,7 +125,7 @@ function output(str) {
     console.log(str);
     spacerTimer = setTimeout(() => console.log(""), 10000);
 }
-function runService(port, event, payload, traceId) {
+function runService(port, event, payload, traceId, hooks) {
     var _a;
     let rs = pendingReplies[traceId];
     if (event === "reply" && rs !== undefined) {
@@ -130,7 +135,7 @@ function runService(port, event, payload, traceId) {
             reply(rs.resp, HTTP.SUCCESS.REPLY(rs.replies));
         }
     }
-    let rivers = (_a = hooks[event]) === null || _a === void 0 ? void 0 : _a.hooks;
+    let rivers = (_a = hooks.riversFor(event)) === null || _a === void 0 ? void 0 : _a.hooks;
     if (rivers === undefined)
         return;
     let messageId = "m" + Math.random();
@@ -138,15 +143,14 @@ function runService(port, event, payload, traceId) {
     Object.keys(rivers).forEach((river) => {
         let services = rivers[river];
         let service = services[~~(Math.random() * services.length)];
-        // const args = ["start", "--silent", service.action, envelope];
-        let [cmd, ...rest] = (0, utils_1.partition)(service.cmd, " ");
+        let [cmd, ...rest] = service.cmd.split(" ");
         const args = [...rest, service.action, envelope];
         const options = {
             cwd: service.dir,
             env: Object.assign(Object.assign({}, process.env), { RAPID: `http://localhost:${port}/trace/${traceId}` }),
         };
-        // console.log(service);
-        // let ls = spawn(NPM_CMD, args, options);
+        if (process.env["DEBUG"])
+            console.log(cmd, args);
         let ls = (0, child_process_1.spawn)(cmd, args, options);
         ls.stdout.on("data", (data) => {
             output(service.dir + (": " + data).trimEnd());
@@ -177,12 +181,12 @@ function sleep(duration) {
 function reply(res, response) {
     res.status(response.code).send(response.data);
 }
-function runWithReply(port, resp, event, payload, traceId) {
+function runWithReply(port, resp, event, payload, traceId, hooks) {
     return __awaiter(this, void 0, void 0, function* () {
-        let rivers = hooks[event];
-        runService(port, event, payload, traceId);
+        let rivers = hooks.riversFor(event);
         if (rivers === undefined)
             return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
+        runService(port, event, payload, traceId, hooks);
         pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
         if (rivers.replyCount !== undefined) {
             yield sleep(rivers.waitFor || MAX_WAIT);
