@@ -142,16 +142,29 @@ class PublicHooks {
   }
 }
 
+const MILLISECONDS = 1;
+const SECONDS = 1000 * MILLISECONDS;
+const MINUTES = 60 * SECONDS;
+const DEFAULT_TIMEOUT = 5 * MINUTES;
+
 function processFolder(folder: string, hooks: PublicHooks) {
   if (fs.existsSync(`${folder}/mist.json`)) {
     let projectType = detectProjectType(folder);
     let cmd = RUN_COMMAND[projectType](folder);
-    let config: { hooks: { [key: string]: string } } = JSON.parse(
-      "" + fs.readFileSync(`${folder}/mist.json`)
-    );
+    let config: {
+      hooks: { [key: string]: string | { action: string; timeout?: number } };
+    } = JSON.parse("" + fs.readFileSync(`${folder}/mist.json`));
     Object.keys(config.hooks).forEach((k) => {
       let [river, event] = k.split("/");
-      let action = config.hooks[k];
+      let hook = config.hooks[k];
+      let action: string, timeout_milliseconds: number;
+      if (typeof hook === "object") {
+        action = hook.action;
+        timeout_milliseconds = hook.timeout || DEFAULT_TIMEOUT;
+      } else {
+        action = hook;
+        timeout_milliseconds = DEFAULT_TIMEOUT;
+      }
       hooks.register(event, river, {
         action,
         dir: folder.replace(/\/\//g, "/"),
@@ -204,6 +217,7 @@ function runService(
         ...process.env,
         RAPID: `http://localhost:${port}/trace/${traceId}`,
       },
+      shell: "sh",
     };
     if (process.env["DEBUG"]) console.log(cmd, args);
     let ls = spawn(cmd, args, options);
