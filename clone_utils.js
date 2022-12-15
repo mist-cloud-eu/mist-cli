@@ -23,7 +23,7 @@ function clone(struct, name) {
             fs_1.default.mkdirSync(`${name}/.mist`, { recursive: true });
             let orgFile = { name };
             fs_1.default.writeFileSync(`${name}/.mist/conf.json`, JSON.stringify(orgFile));
-            yield (0, utils_1.execPromise)(`git clone -q "${config_1.GIT_HOST}/${name}/events" events`, name);
+            yield (0, utils_1.execPromise)(`git clone -q "${config_1.GIT_HOST}/${name}/event-catalogue" event-catalogue`, name);
             Object.keys(struct).forEach((team) => {
                 fs_1.default.mkdirSync(`${name}/${team}`, { recursive: true });
                 createFolderStructure(struct[team], `${name}/${team}`, name, team);

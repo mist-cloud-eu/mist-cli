@@ -8,7 +8,10 @@ export async function clone(struct: any, name: string) {
     fs.mkdirSync(`${name}/.mist`, { recursive: true });
     let orgFile: OrgFile = { name };
     fs.writeFileSync(`${name}/.mist/conf.json`, JSON.stringify(orgFile));
-    await execPromise(`git clone -q "${GIT_HOST}/${name}/events" events`, name);
+    await execPromise(
+      `git clone -q "${GIT_HOST}/${name}/event-catalogue" event-catalogue`,
+      name
+    );
     Object.keys(struct).forEach((team) => {
       fs.mkdirSync(`${name}/${team}`, { recursive: true });
       createFolderStructure(struct[team], `${name}/${team}`, name, team);
