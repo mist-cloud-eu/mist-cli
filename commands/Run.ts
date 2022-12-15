@@ -18,7 +18,7 @@ class Run implements Command {
 
       let teams = fs.readdirSync(pathToRoot);
       teams.splice(teams.indexOf(".mist"), 1);
-      teams.splice(teams.indexOf("events"), 1);
+      teams.splice(teams.indexOf("event-catalogue"), 1);
 
       const app = express();
       app.use(express.json());
@@ -33,7 +33,7 @@ class Run implements Command {
         res.send("Done");
       });
 
-      app.post("/rapid/:event", async (req, res) => {
+      app.post("/rapids/:event", async (req, res) => {
         hooks = new PublicHooks(pathToRoot);
         processFolders(pathToRoot, teams, hooks);
         let event = req.params.event;
@@ -49,39 +49,39 @@ class Run implements Command {
         );
       });
 
-      app.get("/rapid", (req, res) => {
+      app.get("/rapids", (req, res) => {
         res.send("Running...");
       });
 
       app.listen(this.params.port, () => {
         console.log("");
         console.log(
-          "              .8.                                8                        8 "
+          "              .8.                               8                        8 "
         );
         console.log(
-          '              "8"            od8                 8                        8 '
+          '              "8"           od8                 8                        8 '
         );
         console.log(
-          "                             888                 8                        8 "
+          "                            888                 8                        8 "
         );
         console.log(
-          "88d88b.d88b.  888 .d8888b  88888888       .d88b. 8  .d88b.  8     8  .d8888 "
+          "88d88b.d88b.  888 .d8888b 88888888       .d88b. 8  .d88b.  8     8  .d8888 "
         );
         console.log(
-          '888 "888 "88b 888 88K        888         d"    " 8 d"    "b 8     8 d"    8 '
+          '888 "888 "88b 888 88K       888         d"    " 8 d"    "b 8     8 d"    8 '
         );
         console.log(
-          '888  888  888 888 "Y8888b.   888  888888 8       8 8      8 8     8 8     8 '
+          '888  888  888 888 "Y8888b.  888  888888 8       8 8      8 8     8 8     8 '
         );
         console.log(
-          "888  888  888 888      X88   Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 "
+          "888  888  888 888      X88  Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 "
         );
         console.log(
-          '888  888  888 888  88888P\'   "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 '
+          '888  888  888 888  88888P\'  "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 '
         );
         console.log("");
         console.log(
-          `Running local Rapid on http://localhost:${this.params.port}/rapid`
+          `Running local Rapids on http://localhost:${this.params.port}/rapids`
         );
         console.log(`To exit, press ctrl+c`);
         console.log("");
@@ -121,7 +121,7 @@ class PublicHooks {
   } = {};
   constructor(pathToRoot: string) {
     this.publicEvents = JSON.parse(
-      "" + fs.readFileSync(`${pathToRoot}/events/mist.json`)
+      "" + fs.readFileSync(`${pathToRoot}/event-catalogue/api.json`)
     );
   }
 
@@ -205,7 +205,11 @@ function runService(
   let rivers = hooks.riversFor(event)?.hooks;
   if (rivers === undefined) return;
   let messageId = "m" + Math.random();
-  let envelope = JSON.stringify({ payload, messageId, traceId });
+  let envelope = `'${JSON.stringify({
+    payload: JSON.stringify(payload),
+    messageId,
+    traceId,
+  })}'`;
   Object.keys(rivers).forEach((river) => {
     let services = rivers[river];
     let service = services[~~(Math.random() * services.length)];
@@ -215,7 +219,7 @@ function runService(
       cwd: service.dir,
       env: {
         ...process.env,
-        RAPID: `http://localhost:${port}/trace/${traceId}`,
+        RAPIDS: `http://localhost:${port}/trace/${traceId}`,
       },
       shell: "sh",
     };
@@ -293,7 +297,7 @@ argParser.push("run", {
   flags: {
     port: {
       short: "p",
-      desc: "Set which port to run local rapid on",
+      desc: "Set which port to run local rapids on",
       defaultValue: 3000,
       arg: "port",
       overrideValue: (s) => +s,

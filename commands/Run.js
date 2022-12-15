@@ -28,7 +28,7 @@ class Run {
                 const { pathToRoot } = (0, utils_1.fetchOrg)();
                 let teams = fs_1.default.readdirSync(pathToRoot);
                 teams.splice(teams.indexOf(".mist"), 1);
-                teams.splice(teams.indexOf("events"), 1);
+                teams.splice(teams.indexOf("event-catalogue"), 1);
                 const app = (0, express_1.default)();
                 app.use(express_1.default.json());
                 let hooks;
@@ -39,7 +39,7 @@ class Run {
                     runService(this.params.port, event, payload, traceId, hooks);
                     res.send("Done");
                 });
-                app.post("/rapid/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
+                app.post("/rapids/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
                     hooks = new PublicHooks(pathToRoot);
                     processFolders(pathToRoot, teams, hooks);
                     let event = req.params.event;
@@ -47,21 +47,21 @@ class Run {
                     let traceId = "s" + Math.random();
                     let response = yield runWithReply(this.params.port, res, event, payload, traceId, hooks);
                 }));
-                app.get("/rapid", (req, res) => {
+                app.get("/rapids", (req, res) => {
                     res.send("Running...");
                 });
                 app.listen(this.params.port, () => {
                     console.log("");
-                    console.log("              .8.                                8                        8 ");
-                    console.log('              "8"            od8                 8                        8 ');
-                    console.log("                             888                 8                        8 ");
-                    console.log("88d88b.d88b.  888 .d8888b  88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
-                    console.log('888 "888 "88b 888 88K        888         d"    " 8 d"    "b 8     8 d"    8 ');
-                    console.log('888  888  888 888 "Y8888b.   888  888888 8       8 8      8 8     8 8     8 ');
-                    console.log("888  888  888 888      X88   Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
-                    console.log('888  888  888 888  88888P\'   "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
+                    console.log("              .8.                               8                        8 ");
+                    console.log('              "8"           od8                 8                        8 ');
+                    console.log("                            888                 8                        8 ");
+                    console.log("88d88b.d88b.  888 .d8888b 88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
+                    console.log('888 "888 "88b 888 88K       888         d"    " 8 d"    "b 8     8 d"    8 ');
+                    console.log('888  888  888 888 "Y8888b.  888  888888 8       8 8      8 8     8 8     8 ');
+                    console.log("888  888  888 888      X88  Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
+                    console.log('888  888  888 888  88888P\'  "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
                     console.log("");
-                    console.log(`Running local Rapid on http://localhost:${this.params.port}/rapid`);
+                    console.log(`Running local Rapids on http://localhost:${this.params.port}/rapids`);
                     console.log(`To exit, press ctrl+c`);
                     console.log("");
                 });
@@ -79,7 +79,7 @@ let pendingReplies = {};
 class PublicHooks {
     constructor(pathToRoot) {
         this.hooks = {};
-        this.publicEvents = JSON.parse("" + fs_1.default.readFileSync(`${pathToRoot}/events/mist.json`));
+        this.publicEvents = JSON.parse("" + fs_1.default.readFileSync(`${pathToRoot}/event-catalogue/api.json`));
     }
     register(event, river, hook) {
         var _a, _b;
@@ -152,7 +152,11 @@ function runService(port, event, payload, traceId, hooks) {
     if (rivers === undefined)
         return;
     let messageId = "m" + Math.random();
-    let envelope = JSON.stringify({ payload, messageId, traceId });
+    let envelope = `'${JSON.stringify({
+        payload: JSON.stringify(payload),
+        messageId,
+        traceId,
+    })}'`;
     Object.keys(rivers).forEach((river) => {
         let services = rivers[river];
         let service = services[~~(Math.random() * services.length)];
@@ -160,7 +164,7 @@ function runService(port, event, payload, traceId, hooks) {
         const args = [...rest, service.action, envelope];
         const options = {
             cwd: service.dir,
-            env: Object.assign(Object.assign({}, process.env), { RAPID: `http://localhost:${port}/trace/${traceId}` }),
+            env: Object.assign(Object.assign({}, process.env), { RAPIDS: `http://localhost:${port}/trace/${traceId}` }),
             shell: "sh",
         };
         if (process.env["DEBUG"])
@@ -228,7 +232,7 @@ parser_1.argParser.push("run", {
     flags: {
         port: {
             short: "p",
-            desc: "Set which port to run local rapid on",
+            desc: "Set which port to run local rapids on",
             defaultValue: 3000,
             arg: "port",
             overrideValue: (s) => +s,
