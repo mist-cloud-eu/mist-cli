@@ -4,8 +4,9 @@ import { fetchOrg, sshReq } from "../utils";
 
 class Secret implements Command {
   constructor(
-    private set: string,
+    private key: string,
     private params: {
+      value: string;
       overwrite: string;
     }
   ) {}
@@ -16,7 +17,7 @@ class Secret implements Command {
         throw "Cannot manage secrets in organization root. First create a team.";
       console.log(
         await sshReq(
-          `secret ${this.set} ${this.params.overwrite} --org ${org.name} --team ${team}`
+          `secret ${this.key} ${this.params.overwrite} --org ${org.name} --team ${team} --value ${this.params.value}`
         )
       );
     } catch (e) {
@@ -27,14 +28,21 @@ class Secret implements Command {
 
 argParser.push("secret", {
   desc: "Set a secret accessible to our team's services",
-  arg: "key:value",
+  arg: "key",
   construct: (
     arg,
     params: {
+      value: string;
       overwrite: string;
     }
   ) => new Secret(arg, params),
   flags: {
+    value: {
+      short: "v",
+      arg: "value",
+      defaultValue: "",
+      overrideValue: (s) => s,
+    },
     overwrite: {
       defaultValue: "",
       overrideValue: "--overwrite",
