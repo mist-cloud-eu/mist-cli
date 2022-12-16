@@ -49,7 +49,7 @@ function createFolderStructure(struct, prefix, org, team) {
                 yield (0, utils_1.execPromise)(`git remote add origin ${repo}`, dir);
                 yield fs_1.default.writeFile(dir + "/fetch.bat", `@echo off
 git fetch
-git reset --hard origin/master
+git reset --hard origin/main
 (goto) 2>nul & del "%~f0"`, () => { });
             }
             catch (e) {

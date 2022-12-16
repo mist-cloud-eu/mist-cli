@@ -42,7 +42,7 @@ function createFolderStructure(
           dir + "/fetch.bat",
           `@echo off
 git fetch
-git reset --hard origin/master
+git reset --hard origin/main
 (goto) 2>nul & del "%~f0"`,
           () => {}
         );
