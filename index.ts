@@ -22,6 +22,7 @@ import "./commands/Run";
 import "./commands/Service";
 import "./commands/Secret";
 import "./commands/Team";
+import "./commands/Whoami";
 import "./commands/Version";
 
 (async () => {

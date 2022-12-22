@@ -32,6 +32,7 @@ require("./commands/Run");
 require("./commands/Service");
 require("./commands/Secret");
 require("./commands/Team");
+require("./commands/Whoami");
 require("./commands/Version");
 (() => __awaiter(void 0, void 0, void 0, function* () {
     if (process.argv[0].includes("node"))
