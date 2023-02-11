@@ -8,19 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
+const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("../utils");
-class Role {
-    constructor(role, params) {
-        this.role = role;
-        this.params = params;
-    }
+class Deploy {
+    constructor() { }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`role ${this.role} ${this.params.delete} --user ${this.params.user} --org ${org.name}`));
+                yield (0, utils_1.execStreamPromise)(`git add -A && (git diff-index --quiet HEAD || git commit -m 'Deploy') && git push origin HEAD 2>&1`, utils_1.output);
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -29,26 +29,10 @@ class Role {
         });
     }
 }
-const CMD = "role";
+const CMD = "deploy";
 parser_1.argParser.push(CMD, {
-    desc: "Create or assign a role",
-    arg: "role",
-    construct: (arg, params) => new Role(arg, params),
-    flags: {
-        user: {
-            arg: "user",
-            short: "u",
-            desc: "Assign the role to a user",
-            overrideValue: (s) => s,
-        },
-        delete: {
-            desc: "Delete the role",
-            defaultValue: "",
-            overrideValue: "--delete",
-        },
-    },
-    isRelevant: () => {
-        let { org, team } = (0, utils_1.fetchOrgRaw)();
-        return org !== null;
-    },
+    desc: "Short hand for git add, commit, and push",
+    construct: (arg) => new Deploy(),
+    flags: {},
+    isRelevant: () => fs_1.default.existsSync("mist.json"),
 });

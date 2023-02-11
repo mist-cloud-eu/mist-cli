@@ -1,7 +1,7 @@
 import { Command } from "typed-cmdargs";
 import { clone } from "../clone_utils";
 import { argParser } from "../parser";
-import { sshReq } from "../utils";
+import { addToHistory, fetchOrg, fetchOrgRaw, output, sshReq } from "../utils";
 
 class Org implements Command {
   constructor(
@@ -19,13 +19,17 @@ interface OrganizationArg {
 class CreateOrganization implements OrganizationArg {
   async execute(name: string) {
     try {
+      let { org, team } = fetchOrgRaw();
+      if (org !== null)
+        throw "Cannot create a new organization inside another organization.";
       let reply = await sshReq(`org ${name}`);
       if (!reply.startsWith("{")) {
-        console.log(reply);
+        output(reply);
         return;
       }
       let structure = JSON.parse(reply);
       await clone(structure, name);
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
@@ -34,7 +38,7 @@ class CreateOrganization implements OrganizationArg {
 class JoinOrganization implements OrganizationArg {
   async execute(name: string) {
     try {
-      console.log(await sshReq(`org ${name} --join`));
+      output(await sshReq(`org ${name} --join`));
     } catch (e) {
       throw e;
     }
@@ -52,14 +56,15 @@ class NoDeleteOrganization implements OrganizationDeleteArg {
 class DeleteOrganization implements OrganizationDeleteArg {
   async execute(name: string, join: OrganizationArg) {
     try {
-      console.log(await sshReq(`org ${name} --delete`));
+      output(await sshReq(`org ${name} --delete`));
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("org", {
+const CMD = "org";
+argParser.push(CMD, {
   desc: "Create an organization",
   arg: "name",
   construct: (arg, params) => new Org(arg, params),
@@ -75,5 +80,9 @@ argParser.push("org", {
       defaultValue: new NoDeleteOrganization(),
       overrideValue: new DeleteOrganization(),
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org === null;
   },
 });

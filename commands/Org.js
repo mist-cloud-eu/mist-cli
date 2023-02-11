@@ -25,13 +25,17 @@ class CreateOrganization {
     execute(name) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                let { org, team } = (0, utils_1.fetchOrgRaw)();
+                if (org !== null)
+                    throw "Cannot create a new organization inside another organization.";
                 let reply = yield (0, utils_1.sshReq)(`org ${name}`);
                 if (!reply.startsWith("{")) {
-                    console.log(reply);
+                    (0, utils_1.output)(reply);
                     return;
                 }
                 let structure = JSON.parse(reply);
                 yield (0, clone_utils_1.clone)(structure, name);
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -43,7 +47,7 @@ class JoinOrganization {
     execute(name) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`org ${name} --join`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`org ${name} --join`));
             }
             catch (e) {
                 throw e;
@@ -60,7 +64,7 @@ class DeleteOrganization {
     execute(name, join) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`org ${name} --delete`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`org ${name} --delete`));
             }
             catch (e) {
                 throw e;
@@ -68,7 +72,8 @@ class DeleteOrganization {
         });
     }
 }
-parser_1.argParser.push("org", {
+const CMD = "org";
+parser_1.argParser.push(CMD, {
     desc: "Create an organization",
     arg: "name",
     construct: (arg, params) => new Org(arg, params),
@@ -84,5 +89,9 @@ parser_1.argParser.push("org", {
             defaultValue: new NoDeleteOrganization(),
             overrideValue: new DeleteOrganization(),
         },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org === null;
     },
 });

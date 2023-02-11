@@ -1,6 +1,13 @@
 import { Command } from "typed-cmdargs";
 import { GIT_HOST } from "../config";
-import { execPromise, fetchOrg, sshReq } from "../utils";
+import {
+  output,
+  execPromise,
+  fetchOrg,
+  sshReq,
+  addToHistory,
+  fetchOrgRaw,
+} from "../utils";
 import fs from "fs";
 import { argParser } from "../parser";
 
@@ -25,6 +32,7 @@ class Service implements Command {
         org,
         this.params.template
       );
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
@@ -75,7 +83,7 @@ class NoDeleteService implements ServiceDeleteArg {
     template: TemplateArg
   ) {
     try {
-      console.log(
+      output(
         await sshReq(`service ${name} --team ${team} --org ${org.name} ${priv}`)
       );
       let repoBase = `${GIT_HOST}/${org.name}/${team}`;
@@ -94,7 +102,7 @@ class DeleteService implements ServiceDeleteArg {
     template: TemplateArg
   ) {
     try {
-      console.log(
+      output(
         await sshReq(
           `service ${name} --team ${team} --org ${org.name} --delete`
         )
@@ -107,7 +115,8 @@ class DeleteService implements ServiceDeleteArg {
   }
 }
 
-argParser.push("service", {
+const CMD = "service";
+argParser.push(CMD, {
   desc: "Create a service",
   arg: "name",
   construct: (arg, params) => new Service(arg, params),
@@ -130,5 +139,9 @@ argParser.push("service", {
       defaultValue: new NoDeleteService(),
       overrideValue: new DeleteService(),
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return team !== null && !fs.existsSync("mist.json");
   },
 });

@@ -16,7 +16,8 @@ class ListRoles {
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`list-organizations`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-organizations`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -24,7 +25,8 @@ class ListRoles {
         });
     }
 }
-parser_1.argParser.push("list-organizations", {
+const CMD = "list-organizations";
+parser_1.argParser.push(CMD, {
     desc: "List the organization the current user has access to",
     construct: (arg, params) => new ListRoles(),
     flags: {},

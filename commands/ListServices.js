@@ -19,7 +19,8 @@ class ListServices {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                console.log(yield (0, utils_1.sshReq)(`list-services ${this.team} --org ${org.name}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-services ${this.team} --org ${org.name}`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -27,9 +28,14 @@ class ListServices {
         });
     }
 }
-parser_1.argParser.push("list-services", {
+const CMD = "list-services";
+parser_1.argParser.push(CMD, {
     desc: "List the services of a team",
     arg: "team",
     construct: (arg, params) => new ListServices(arg),
     flags: {},
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
+    },
 });

@@ -1,19 +1,21 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { sshReq } from "../utils";
+import { addToHistory, output, sshReq } from "../utils";
 
 class Purge implements Command {
   constructor(private params: { delete: string }) {}
   async execute() {
     try {
-      console.log(await sshReq(`purge ${this.params.delete}`));
+      output(await sshReq(`purge ${this.params.delete}`));
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("purge", {
+const CMD = "purge";
+argParser.push(CMD, {
   desc: "Remove all ssh keys from current user",
   construct: (arg, params) => new Purge(params),
   flags: {
@@ -23,4 +25,5 @@ argParser.push("purge", {
       overrideValue: "--delete",
     },
   },
+  isRelevant: () => false,
 });

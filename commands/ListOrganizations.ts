@@ -1,19 +1,21 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, sshReq } from "../utils";
+import { output, fetchOrg, sshReq, addToHistory } from "../utils";
 
 class ListRoles implements Command {
   constructor() {}
   async execute() {
     try {
-      console.log(await sshReq(`list-organizations`));
+      output(await sshReq(`list-organizations`));
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("list-organizations", {
+const CMD = "list-organizations";
+argParser.push(CMD, {
   desc: "List the organization the current user has access to",
   construct: (arg, params) => new ListRoles(),
   flags: {},

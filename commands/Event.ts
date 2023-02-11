@@ -1,6 +1,6 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { sshReq } from "../utils";
+import { addToHistory, output, sshReq } from "../utils";
 
 class Event implements Command {
   constructor(
@@ -12,18 +12,20 @@ class Event implements Command {
   ) {}
   async execute() {
     try {
-      console.log(
+      output(
         await sshReq(
           `event ${this.event} ${this.params.delete} --key ${this.params.key}`
         )
       );
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("event", {
+const CMD = "event";
+argParser.push(CMD, {
   desc: "Give api key permission to receive specific event type",
   arg: "event",
   construct: (

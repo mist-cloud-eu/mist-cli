@@ -1,5 +1,5 @@
 import { Command } from "typed-cmdargs";
-import { fetchOrg, sshReq } from "../utils";
+import { output, fetchOrg, sshReq, addToHistory, fetchOrgRaw } from "../utils";
 import fs from "fs";
 import { argParser } from "../parser";
 
@@ -13,6 +13,7 @@ class Team implements Command {
       let { org, team } = fetchOrg();
       if (team !== null) throw "Must be in the organization root.";
       this.params.delete.execute(this.name, this.params.user, org.name);
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
@@ -26,7 +27,7 @@ class NoDeleteTeam implements TeamDeleteArg {
   async execute(name: string, user: string, org: string) {
     try {
       fs.mkdirSync(name);
-      console.log(await sshReq(`team ${name} ${user} --org ${org}`));
+      output(await sshReq(`team ${name} ${user} --org ${org}`));
     } catch (e) {
       throw e;
     }
@@ -35,7 +36,7 @@ class NoDeleteTeam implements TeamDeleteArg {
 class DeleteTeam implements TeamDeleteArg {
   async execute(name: string, user: string, org: string) {
     try {
-      console.log(await sshReq(`team ${name} --delete --org ${org}`));
+      output(await sshReq(`team ${name} --delete --org ${org}`));
       if (fs.existsSync(name)) fs.renameSync(name, `(deleted) ${name}`);
     } catch (e) {
       throw e;
@@ -43,7 +44,8 @@ class DeleteTeam implements TeamDeleteArg {
   }
 }
 
-argParser.push("team", {
+const CMD = "team";
+argParser.push(CMD, {
   desc: "Create a team",
   arg: "name",
   construct: (arg, params) => new Team(arg, params),
@@ -60,5 +62,9 @@ argParser.push("team", {
       defaultValue: new NoDeleteTeam(),
       overrideValue: new DeleteTeam(),
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null && team === null;
   },
 });

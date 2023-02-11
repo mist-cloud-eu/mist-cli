@@ -1,10 +1,10 @@
 import fs from "fs";
 import { GIT_HOST } from "./config";
-import { execPromise } from "./utils";
+import { output, execPromise } from "./utils";
 
 export async function clone(struct: any, name: string) {
   try {
-    console.log(`Cloning ${name}...`);
+    output(`Cloning ${name}...`);
     fs.mkdirSync(`${name}/.mist`, { recursive: true });
     let orgFile: OrgFile = { name };
     fs.writeFileSync(`${name}/.mist/conf.json`, JSON.stringify(orgFile));
@@ -31,7 +31,7 @@ function createFolderStructure(
     if (struct[k] instanceof Object)
       createFolderStructure(struct[k], prefix + "/" + k, org, team);
     else {
-      // console.log(`git clone "${HOST}/${org}/${team}/${k}" "${prefix}/${k}"`);
+      // output(`git clone "${HOST}/${org}/${team}/${k}" "${prefix}/${k}"`);
       let repo = `"${GIT_HOST}/${org}/${team}/${k}"`;
       let dir = `${prefix}/${k}`;
       try {

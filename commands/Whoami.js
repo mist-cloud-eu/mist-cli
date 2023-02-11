@@ -16,7 +16,8 @@ class Whoami {
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`whoami`));
+                (0, utils_1.output)((yield (0, utils_1.sshReq)(`whoami`)).trim());
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -24,8 +25,10 @@ class Whoami {
         });
     }
 }
-parser_1.argParser.push("whoami", {
+const CMD = "whoami";
+parser_1.argParser.push(CMD, {
     desc: "Displays the email of the current ssh key",
     construct: (arg) => new Whoami(),
     flags: {},
+    isRelevant: () => false,
 });

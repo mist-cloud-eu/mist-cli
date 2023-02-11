@@ -34,12 +34,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const conf = __importStar(require("../package.json"));
+const utils_1 = require("../utils");
 class Version {
     constructor() { }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(conf.version);
+                (0, utils_1.output)(conf.version);
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -47,8 +49,10 @@ class Version {
         });
     }
 }
-parser_1.argParser.push("version", {
+const CMD = "version";
+parser_1.argParser.push(CMD, {
     desc: "Print the version of the CLI",
     construct: (arg, params) => new Version(),
     flags: {},
+    isRelevant: () => false,
 });

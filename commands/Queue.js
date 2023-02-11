@@ -11,16 +11,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
-class Role {
-    constructor(role, params) {
-        this.role = role;
-        this.params = params;
+class Queue {
+    constructor(count, params) {
+        this.count = count;
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`role ${this.role} ${this.params.delete} --user ${this.params.user} --org ${org.name}`));
+                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue ${this.count} --org ${org.name}`));
+                (0, utils_1.printTable)(data, {
+                    "Message id": (x) => x.id,
+                    Event: (x) => x.e,
+                    River: (x) => x.r,
+                    Status: (x) => x.s,
+                });
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -29,24 +34,12 @@ class Role {
         });
     }
 }
-const CMD = "role";
+const CMD = "queue";
 parser_1.argParser.push(CMD, {
-    desc: "Create or assign a role",
-    arg: "role",
-    construct: (arg, params) => new Role(arg, params),
-    flags: {
-        user: {
-            arg: "user",
-            short: "u",
-            desc: "Assign the role to a user",
-            overrideValue: (s) => s,
-        },
-        delete: {
-            desc: "Delete the role",
-            defaultValue: "",
-            overrideValue: "--delete",
-        },
-    },
+    desc: "Show status of queued requests",
+    arg: "count",
+    construct: (arg, params) => new Queue(arg, params),
+    flags: {},
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

@@ -20,7 +20,15 @@ class Key {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                console.log(yield (0, utils_1.sshReq)(`key ${this.duration} ${this.params.update} --org ${org.name}`));
+                if (this.params.update === "") {
+                    let { key, expiry } = JSON.parse(yield (0, utils_1.sshReq)(`key ${this.duration} ${this.params.update} --org ${org.name}`));
+                    (0, utils_1.output)(`${key} expires on ${new Date(expiry).toLocaleString()}.`);
+                }
+                else {
+                    let { count, expiry } = JSON.parse(yield (0, utils_1.sshReq)(`key ${this.duration} ${this.params.update} --org ${org.name}`));
+                    (0, utils_1.output)(`Updated ${count} keys to expire on ${new Date(expiry).toLocaleString()}.`);
+                }
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -28,16 +36,27 @@ class Key {
         });
     }
 }
-parser_1.argParser.push("key", {
+const CMD = "key";
+parser_1.argParser.push(CMD, {
     desc: "Create an api key",
     arg: "duration",
     construct: (arg, params) => new Key(arg, params),
     flags: {
         update: {
-            desc: "Update the duration of a key",
+            desc: "Update the key",
             arg: "key",
             defaultValue: "",
             overrideValue: (s) => `--update ${s}`,
         },
+        name: {
+            desc: "Human readable name of key",
+            arg: "name",
+            defaultValue: "",
+            overrideValue: (s) => `--name ${s}`,
+        },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
     },
 });

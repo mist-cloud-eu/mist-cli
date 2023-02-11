@@ -22,7 +22,10 @@ class Secret {
                 let { org, team } = (0, utils_1.fetchOrg)();
                 if (team === null)
                     throw "Cannot manage secrets in organization root. First create a team.";
-                console.log(yield (0, utils_1.sshReq)(`secret ${this.key} ${this.params.overwrite} --org ${org.name} --team ${team} --value ${this.params.value}`));
+                if (this.params.prod === "" && this.params.test === "")
+                    throw "Secret should be set in --prod, --test, or both.";
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`secret ${this.key} ${this.params.overwrite} ${this.params.prod} ${this.params.test} --org ${org.name} --team ${team} --value ${this.params.value}`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -30,8 +33,9 @@ class Secret {
         });
     }
 }
-parser_1.argParser.push("secret", {
-    desc: "Set a secret accessible to our team's services",
+const CMD = "secret";
+parser_1.argParser.push(CMD, {
+    desc: "Set a secret environment variable accessible to the team's services",
     arg: "key",
     construct: (arg, params) => new Secret(arg, params),
     flags: {
@@ -45,5 +49,17 @@ parser_1.argParser.push("secret", {
             defaultValue: "",
             overrideValue: "--overwrite",
         },
+        prod: {
+            defaultValue: "",
+            overrideValue: "--prod",
+        },
+        test: {
+            defaultValue: "",
+            overrideValue: "--test",
+        },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return team !== null;
     },
 });

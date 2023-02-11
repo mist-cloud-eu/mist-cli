@@ -1,12 +1,13 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg } from "../utils";
+import { output, fetchOrg, addToHistory, fetchOrgRaw } from "../utils";
 import express from "express";
-import { Response } from "express";
+import { Request, Response } from "express";
 import fs from "fs";
 import { spawn, ExecOptions } from "child_process";
 import {
   detectProjectType,
+  ProjectType,
   RUN_COMMAND,
 } from "@mist-cloud-eu/project-type-detect";
 
@@ -21,11 +22,13 @@ class Run implements Command {
       teams.splice(teams.indexOf("event-catalogue"), 1);
 
       const app = express();
-      app.use(express.json());
+      // app.use(express.json());
+      // app.use(express.urlencoded());
+      app.use(express.text({ type: "*/*" }));
 
       let hooks: PublicHooks;
 
-      app.post("/trace/:traceId/:event", (req, res) => {
+      app.post("/trace/:traceId/:event", async (req, res) => {
         let traceId = req.params.traceId;
         let event = req.params.event;
         let payload = req.body;
@@ -34,19 +37,23 @@ class Run implements Command {
       });
 
       app.post("/rapids/:event", async (req, res) => {
-        hooks = new PublicHooks(pathToRoot);
-        processFolders(pathToRoot, teams, hooks);
-        let event = req.params.event;
-        let payload = req.body;
-        let traceId = "s" + Math.random();
-        let response = await runWithReply(
-          this.params.port,
-          res,
-          event,
-          payload,
-          traceId,
-          hooks
-        );
+        try {
+          hooks = new PublicHooks(pathToRoot);
+          processFolders(pathToRoot, teams, hooks);
+          let event = req.params.event;
+          let payload = req.body;
+          let traceId = "s" + Math.random();
+          let response = await runWithReply(
+            this.params.port,
+            res,
+            event,
+            payload,
+            traceId,
+            hooks
+          );
+        } catch (e) {
+          throw e;
+        }
       });
 
       app.get("/rapids", (req, res) => {
@@ -54,38 +61,39 @@ class Run implements Command {
       });
 
       app.listen(this.params.port, () => {
-        console.log("");
-        console.log(
+        output("");
+        output(
           "              .8.                               8                        8 "
         );
-        console.log(
+        output(
           '              "8"           od8                 8                        8 '
         );
-        console.log(
+        output(
           "                            888                 8                        8 "
         );
-        console.log(
+        output(
           "88d88b.d88b.  888 .d8888b 88888888       .d88b. 8  .d88b.  8     8  .d8888 "
         );
-        console.log(
+        output(
           '888 "888 "88b 888 88K       888         d"    " 8 d"    "b 8     8 d"    8 '
         );
-        console.log(
+        output(
           '888  888  888 888 "Y8888b.  888  888888 8       8 8      8 8     8 8     8 '
         );
-        console.log(
+        output(
           "888  888  888 888      X88  Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 "
         );
-        console.log(
+        output(
           '888  888  888 888  88888P\'  "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 '
         );
-        console.log("");
-        console.log(
+        output("");
+        output(
           `Running local Rapids on http://localhost:${this.params.port}/rapids`
         );
-        console.log(`To exit, press ctrl+c`);
-        console.log("");
+        output(`To exit, press ctrl+c`);
+        output("");
       });
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
@@ -149,7 +157,13 @@ const DEFAULT_TIMEOUT = 5 * MINUTES;
 
 function processFolder(folder: string, hooks: PublicHooks) {
   if (fs.existsSync(`${folder}/mist.json`)) {
-    let projectType = detectProjectType(folder);
+    let projectType: ProjectType;
+    try {
+      projectType = detectProjectType(folder);
+    } catch (e) {
+      console.log(e);
+      return;
+    }
     let cmd = RUN_COMMAND[projectType](folder);
     let config: {
       hooks: { [key: string]: string | { action: string; timeout?: number } };
@@ -177,20 +191,22 @@ function processFolder(folder: string, hooks: PublicHooks) {
 }
 
 function processFolders(prefix: string, folders: string[], hooks: PublicHooks) {
-  folders.forEach((folder) => processFolder(prefix + folder + "/", hooks));
+  folders
+    .filter((x) => !x.startsWith("(deleted) "))
+    .forEach((folder) => processFolder(prefix + folder + "/", hooks));
 }
 
 let spacerTimer: undefined | NodeJS.Timeout;
-function output(str: string) {
+function timedOutput(str: string) {
   if (spacerTimer !== undefined) clearTimeout(spacerTimer);
-  console.log(str);
-  spacerTimer = setTimeout(() => console.log(""), 10000);
+  output(str);
+  spacerTimer = setTimeout(() => output(""), 10000);
 }
 
 function runService(
   port: number,
   event: string,
-  payload: any,
+  payload: string,
   traceId: string,
   hooks: PublicHooks
 ) {
@@ -206,7 +222,7 @@ function runService(
   if (rivers === undefined) return;
   let messageId = "m" + Math.random();
   let envelope = `'${JSON.stringify({
-    payload: JSON.stringify(payload),
+    payload,
     messageId,
     traceId,
   })}'`;
@@ -226,10 +242,10 @@ function runService(
     if (process.env["DEBUG"]) console.log(cmd, args);
     let ls = spawn(cmd, args, options);
     ls.stdout.on("data", (data) => {
-      output(service.dir + (": " + data).trimEnd());
+      timedOutput(service.dir + (": " + data).trimEnd());
     });
     ls.stderr.on("data", (data) => {
-      output(FgRed + service.dir + (": " + data).trimEnd() + Reset);
+      timedOutput(FgRed + service.dir + (": " + data).trimEnd() + Reset);
     });
   });
 }
@@ -269,29 +285,34 @@ async function runWithReply(
   traceId: string,
   hooks: PublicHooks
 ) {
-  let rivers = hooks.riversFor(event);
-  if (rivers === undefined) return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
-  runService(port, event, payload, traceId, hooks);
-  pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
-  if (rivers.replyCount !== undefined) {
-    await sleep(rivers.waitFor || MAX_WAIT);
-    let rs = pendingReplies[traceId];
-    if (rs !== undefined) {
+  try {
+    let rivers = hooks.riversFor(event);
+    if (rivers === undefined) return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
+    runService(port, event, payload, traceId, hooks);
+    pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
+    if (rivers.replyCount !== undefined) {
+      await sleep(rivers.waitFor || MAX_WAIT);
+      let rs = pendingReplies[traceId];
+      if (rs !== undefined) {
+        delete pendingReplies[traceId];
+        reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
+      }
+    } else if (rivers.waitFor !== undefined) {
+      await sleep(rivers.waitFor);
+      let rs = pendingReplies[traceId];
       delete pendingReplies[traceId];
       reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
+    } else {
+      delete pendingReplies[traceId];
+      reply(resp, HTTP.SUCCESS.QUEUE_JOB);
     }
-  } else if (rivers.waitFor !== undefined) {
-    await sleep(rivers.waitFor);
-    let rs = pendingReplies[traceId];
-    delete pendingReplies[traceId];
-    reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
-  } else {
-    delete pendingReplies[traceId];
-    reply(resp, HTTP.SUCCESS.QUEUE_JOB);
+  } catch (e) {
+    throw e;
   }
 }
 
-argParser.push("run", {
+const CMD = "run";
+argParser.push(CMD, {
   desc: "Run system locally",
   construct: (arg, params) => new Run(params),
   flags: {
@@ -302,5 +323,9 @@ argParser.push("run", {
       arg: "port",
       overrideValue: (s) => +s,
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null;
   },
 });

@@ -27,6 +27,7 @@ class Team {
                 if (team !== null)
                     throw "Must be in the organization root.";
                 this.params.delete.execute(this.name, this.params.user, org.name);
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -39,7 +40,7 @@ class NoDeleteTeam {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 fs_1.default.mkdirSync(name);
-                console.log(yield (0, utils_1.sshReq)(`team ${name} ${user} --org ${org}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team ${name} ${user} --org ${org}`));
             }
             catch (e) {
                 throw e;
@@ -51,7 +52,7 @@ class DeleteTeam {
     execute(name, user, org) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`team ${name} --delete --org ${org}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team ${name} --delete --org ${org}`));
                 if (fs_1.default.existsSync(name))
                     fs_1.default.renameSync(name, `(deleted) ${name}`);
             }
@@ -61,7 +62,8 @@ class DeleteTeam {
         });
     }
 }
-parser_1.argParser.push("team", {
+const CMD = "team";
+parser_1.argParser.push(CMD, {
     desc: "Create a team",
     arg: "name",
     construct: (arg, params) => new Team(arg, params),
@@ -78,5 +80,9 @@ parser_1.argParser.push("team", {
             defaultValue: new NoDeleteTeam(),
             overrideValue: new DeleteTeam(),
         },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null && team === null;
     },
 });

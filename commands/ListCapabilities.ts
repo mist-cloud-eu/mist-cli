@@ -1,24 +1,28 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, sshReq } from "../utils";
+import { output, fetchOrg, sshReq, addToHistory, fetchOrgRaw } from "../utils";
 
 class ListCapabilities implements Command {
   constructor(private role: string) {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      console.log(
-        await sshReq(`list-capabilities ${this.role} --org ${org.name}`)
-      );
+      output(await sshReq(`list-capabilities ${this.role} --org ${org.name}`));
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("list-capabilities", {
+const CMD = "list-capabilities";
+argParser.push(CMD, {
   desc: "List the capabilities of a role",
   arg: "role",
   construct: (arg, params) => new ListCapabilities(arg),
   flags: {},
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null;
+  },
 });

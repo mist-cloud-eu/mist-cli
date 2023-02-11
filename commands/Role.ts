@@ -1,6 +1,6 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, sshReq } from "../utils";
+import { output, fetchOrg, sshReq, addToHistory, fetchOrgRaw } from "../utils";
 
 class Role implements Command {
   constructor(
@@ -13,19 +13,21 @@ class Role implements Command {
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      console.log(
+      output(
         await sshReq(
           `role ${this.role} ${this.params.delete} --user ${this.params.user} --org ${org.name}`
         )
       );
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("role", {
-  desc: "Create a role",
+const CMD = "role";
+argParser.push(CMD, {
+  desc: "Create or assign a role",
   arg: "role",
   construct: (
     arg,
@@ -46,5 +48,9 @@ argParser.push("role", {
       defaultValue: "",
       overrideValue: "--delete",
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null;
   },
 });

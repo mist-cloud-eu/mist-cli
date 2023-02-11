@@ -1,21 +1,27 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, sshReq } from "../utils";
+import { output, fetchOrg, sshReq, addToHistory, fetchOrgRaw } from "../utils";
 
 class ListTeams implements Command {
   constructor() {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      console.log(await sshReq(`list-teams --org ${org.name}`));
+      output(await sshReq(`list-teams --org ${org.name}`));
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("list-teams", {
+const CMD = "list-teams";
+argParser.push(CMD, {
   desc: "List the teams of an organization",
   construct: (arg, params) => new ListTeams(),
   flags: {},
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null;
+  },
 });

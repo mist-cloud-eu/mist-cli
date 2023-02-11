@@ -26,14 +26,15 @@ class Login {
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(`By using this product you agree to let Mistware (http://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (http://mist-cloud.eu).`);
-                console.log();
+                (0, utils_1.output)(`By using this product you agree to let Mistware (https://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (https://mist-cloud.eu).`);
+                (0, utils_1.output)("");
                 let key = yield this.params.key.getKey();
-                console.log();
-                console.log(yield (0, utils_1.urlReq)(`${config_1.HTTP_HOST}/admin/user`, "POST", {
+                (0, utils_1.output)("");
+                (0, utils_1.output)(yield (0, utils_1.urlReq)(`${config_1.HTTP_HOST}/admin/user`, "POST", {
                     email: this.email,
                     key,
                 }));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -96,7 +97,8 @@ function ask(readline, q) {
         readline.question(q, resolve);
     });
 }
-parser_1.argParser.push("login", {
+const CMD = "login";
+parser_1.argParser.push(CMD, {
     desc: "Sign up an email account",
     arg: "email",
     construct: (arg, params) => new Login(arg, params),
@@ -108,5 +110,9 @@ parser_1.argParser.push("login", {
             defaultValue: new AskForKey(),
             overrideValue: (s) => new ProvidedKey(s),
         },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org === null;
     },
 });

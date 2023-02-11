@@ -19,7 +19,7 @@ const utils_1 = require("./utils");
 function clone(struct, name) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log(`Cloning ${name}...`);
+            (0, utils_1.output)(`Cloning ${name}...`);
             fs_1.default.mkdirSync(`${name}/.mist`, { recursive: true });
             let orgFile = { name };
             fs_1.default.writeFileSync(`${name}/.mist/conf.json`, JSON.stringify(orgFile));
@@ -40,7 +40,7 @@ function createFolderStructure(struct, prefix, org, team) {
         if (struct[k] instanceof Object)
             createFolderStructure(struct[k], prefix + "/" + k, org, team);
         else {
-            // console.log(`git clone "${HOST}/${org}/${team}/${k}" "${prefix}/${k}"`);
+            // output(`git clone "${HOST}/${org}/${team}/${k}" "${prefix}/${k}"`);
             let repo = `"${config_1.GIT_HOST}/${org}/${team}/${k}"`;
             let dir = `${prefix}/${k}`;
             try {

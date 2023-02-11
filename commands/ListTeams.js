@@ -17,7 +17,8 @@ class ListTeams {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                console.log(yield (0, utils_1.sshReq)(`list-teams --org ${org.name}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-teams --org ${org.name}`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -25,8 +26,13 @@ class ListTeams {
         });
     }
 }
-parser_1.argParser.push("list-teams", {
+const CMD = "list-teams";
+parser_1.argParser.push(CMD, {
     desc: "List the teams of an organization",
     construct: (arg, params) => new ListTeams(),
     flags: {},
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
+    },
 });

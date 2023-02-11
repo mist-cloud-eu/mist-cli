@@ -30,41 +30,49 @@ class Run {
                 teams.splice(teams.indexOf(".mist"), 1);
                 teams.splice(teams.indexOf("event-catalogue"), 1);
                 const app = (0, express_1.default)();
-                app.use(express_1.default.json());
+                // app.use(express.json());
+                // app.use(express.urlencoded());
+                app.use(express_1.default.text({ type: "*/*" }));
                 let hooks;
-                app.post("/trace/:traceId/:event", (req, res) => {
+                app.post("/trace/:traceId/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
                     let traceId = req.params.traceId;
                     let event = req.params.event;
                     let payload = req.body;
                     runService(this.params.port, event, payload, traceId, hooks);
                     res.send("Done");
-                });
+                }));
                 app.post("/rapids/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
-                    hooks = new PublicHooks(pathToRoot);
-                    processFolders(pathToRoot, teams, hooks);
-                    let event = req.params.event;
-                    let payload = req.body;
-                    let traceId = "s" + Math.random();
-                    let response = yield runWithReply(this.params.port, res, event, payload, traceId, hooks);
+                    try {
+                        hooks = new PublicHooks(pathToRoot);
+                        processFolders(pathToRoot, teams, hooks);
+                        let event = req.params.event;
+                        let payload = req.body;
+                        let traceId = "s" + Math.random();
+                        let response = yield runWithReply(this.params.port, res, event, payload, traceId, hooks);
+                    }
+                    catch (e) {
+                        throw e;
+                    }
                 }));
                 app.get("/rapids", (req, res) => {
                     res.send("Running...");
                 });
                 app.listen(this.params.port, () => {
-                    console.log("");
-                    console.log("              .8.                               8                        8 ");
-                    console.log('              "8"           od8                 8                        8 ');
-                    console.log("                            888                 8                        8 ");
-                    console.log("88d88b.d88b.  888 .d8888b 88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
-                    console.log('888 "888 "88b 888 88K       888         d"    " 8 d"    "b 8     8 d"    8 ');
-                    console.log('888  888  888 888 "Y8888b.  888  888888 8       8 8      8 8     8 8     8 ');
-                    console.log("888  888  888 888      X88  Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
-                    console.log('888  888  888 888  88888P\'  "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
-                    console.log("");
-                    console.log(`Running local Rapids on http://localhost:${this.params.port}/rapids`);
-                    console.log(`To exit, press ctrl+c`);
-                    console.log("");
+                    (0, utils_1.output)("");
+                    (0, utils_1.output)("              .8.                               8                        8 ");
+                    (0, utils_1.output)('              "8"           od8                 8                        8 ');
+                    (0, utils_1.output)("                            888                 8                        8 ");
+                    (0, utils_1.output)("88d88b.d88b.  888 .d8888b 88888888       .d88b. 8  .d88b.  8     8  .d8888 ");
+                    (0, utils_1.output)('888 "888 "88b 888 88K       888         d"    " 8 d"    "b 8     8 d"    8 ');
+                    (0, utils_1.output)('888  888  888 888 "Y8888b.  888  888888 8       8 8      8 8     8 8     8 ');
+                    (0, utils_1.output)("888  888  888 888      X88  Y8b. .      Y.    . 8 Y.    .P Y.    8 Y.    8 ");
+                    (0, utils_1.output)('888  888  888 888  88888P\'  "Y888Y       "Y88P" 8  "Y88P"   "Y88"8  "Y88"8 ');
+                    (0, utils_1.output)("");
+                    (0, utils_1.output)(`Running local Rapids on http://localhost:${this.params.port}/rapids`);
+                    (0, utils_1.output)(`To exit, press ctrl+c`);
+                    (0, utils_1.output)("");
                 });
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -102,7 +110,14 @@ const MINUTES = 60 * SECONDS;
 const DEFAULT_TIMEOUT = 5 * MINUTES;
 function processFolder(folder, hooks) {
     if (fs_1.default.existsSync(`${folder}/mist.json`)) {
-        let projectType = (0, project_type_detect_1.detectProjectType)(folder);
+        let projectType;
+        try {
+            projectType = (0, project_type_detect_1.detectProjectType)(folder);
+        }
+        catch (e) {
+            console.log(e);
+            return;
+        }
         let cmd = project_type_detect_1.RUN_COMMAND[projectType](folder);
         let config = JSON.parse("" + fs_1.default.readFileSync(`${folder}/mist.json`));
         Object.keys(config.hooks).forEach((k) => {
@@ -129,14 +144,16 @@ function processFolder(folder, hooks) {
     }
 }
 function processFolders(prefix, folders, hooks) {
-    folders.forEach((folder) => processFolder(prefix + folder + "/", hooks));
+    folders
+        .filter((x) => !x.startsWith("(deleted) "))
+        .forEach((folder) => processFolder(prefix + folder + "/", hooks));
 }
 let spacerTimer;
-function output(str) {
+function timedOutput(str) {
     if (spacerTimer !== undefined)
         clearTimeout(spacerTimer);
-    console.log(str);
-    spacerTimer = setTimeout(() => console.log(""), 10000);
+    (0, utils_1.output)(str);
+    spacerTimer = setTimeout(() => (0, utils_1.output)(""), 10000);
 }
 function runService(port, event, payload, traceId, hooks) {
     var _a;
@@ -153,7 +170,7 @@ function runService(port, event, payload, traceId, hooks) {
         return;
     let messageId = "m" + Math.random();
     let envelope = `'${JSON.stringify({
-        payload: JSON.stringify(payload),
+        payload,
         messageId,
         traceId,
     })}'`;
@@ -171,10 +188,10 @@ function runService(port, event, payload, traceId, hooks) {
             console.log(cmd, args);
         let ls = (0, child_process_1.spawn)(cmd, args, options);
         ls.stdout.on("data", (data) => {
-            output(service.dir + (": " + data).trimEnd());
+            timedOutput(service.dir + (": " + data).trimEnd());
         });
         ls.stderr.on("data", (data) => {
-            output(FgRed + service.dir + (": " + data).trimEnd() + Reset);
+            timedOutput(FgRed + service.dir + (": " + data).trimEnd() + Reset);
         });
     });
 }
@@ -201,32 +218,38 @@ function reply(res, response) {
 }
 function runWithReply(port, resp, event, payload, traceId, hooks) {
     return __awaiter(this, void 0, void 0, function* () {
-        let rivers = hooks.riversFor(event);
-        if (rivers === undefined)
-            return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
-        runService(port, event, payload, traceId, hooks);
-        pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
-        if (rivers.replyCount !== undefined) {
-            yield sleep(rivers.waitFor || MAX_WAIT);
-            let rs = pendingReplies[traceId];
-            if (rs !== undefined) {
+        try {
+            let rivers = hooks.riversFor(event);
+            if (rivers === undefined)
+                return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
+            runService(port, event, payload, traceId, hooks);
+            pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
+            if (rivers.replyCount !== undefined) {
+                yield sleep(rivers.waitFor || MAX_WAIT);
+                let rs = pendingReplies[traceId];
+                if (rs !== undefined) {
+                    delete pendingReplies[traceId];
+                    reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
+                }
+            }
+            else if (rivers.waitFor !== undefined) {
+                yield sleep(rivers.waitFor);
+                let rs = pendingReplies[traceId];
                 delete pendingReplies[traceId];
                 reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
             }
+            else {
+                delete pendingReplies[traceId];
+                reply(resp, HTTP.SUCCESS.QUEUE_JOB);
+            }
         }
-        else if (rivers.waitFor !== undefined) {
-            yield sleep(rivers.waitFor);
-            let rs = pendingReplies[traceId];
-            delete pendingReplies[traceId];
-            reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
-        }
-        else {
-            delete pendingReplies[traceId];
-            reply(resp, HTTP.SUCCESS.QUEUE_JOB);
+        catch (e) {
+            throw e;
         }
     });
 }
-parser_1.argParser.push("run", {
+const CMD = "run";
+parser_1.argParser.push(CMD, {
     desc: "Run system locally",
     construct: (arg, params) => new Run(params),
     flags: {
@@ -237,5 +260,9 @@ parser_1.argParser.push("run", {
             arg: "port",
             overrideValue: (s) => +s,
         },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
     },
 });

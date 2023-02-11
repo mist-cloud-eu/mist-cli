@@ -1,11 +1,12 @@
 import http from "http";
 import https from "https";
 import fs from "fs";
-import { exec } from "child_process";
+import os from "os";
+import { exec, spawn } from "child_process";
 import { SSH_HOST } from "./config";
 
 export function execPromise(cmd: string, cwd?: string) {
-  // console.log("Executing", cmd);
+  // output("Executing", cmd);
   return new Promise<string>((resolve, reject) => {
     exec(cmd, { cwd }, (error, stdout, stderr) => {
       let err = error?.message || stderr;
@@ -14,6 +15,27 @@ export function execPromise(cmd: string, cwd?: string) {
       } else {
         resolve(stdout);
       }
+    });
+  });
+}
+
+export function execStreamPromise(
+  full: string,
+  onData: (_: string) => void,
+  cwd?: string
+) {
+  return new Promise<void>((resolve, reject) => {
+    let [cmd, ...args] = full.split(" ");
+    let p = spawn(cmd, args, { cwd, shell: "sh" });
+    p.stdout.on("data", (data) => {
+      onData(data.toString());
+    });
+    p.stderr.on("data", (data) => {
+      console.log(data.toString());
+    });
+    p.on("exit", (code) => {
+      if (code !== 0) reject();
+      else resolve();
     });
   });
 }
@@ -74,9 +96,8 @@ export function urlReq(
   });
 }
 
-export function fetchOrg() {
-  if (fs.existsSync(".mist")) {
-    if (!fs.existsSync(".mist/conf.json")) throw "Bad .mist folder";
+export function fetchOrgRaw() {
+  if (fs.existsSync(".mist/conf.json")) {
     let org: OrgFile = JSON.parse("" + fs.readFileSync(`.mist/conf.json`));
     return { org, team: null, pathToRoot: "./" };
   }
@@ -86,9 +107,8 @@ export function fetchOrg() {
   let folder = "/";
   let team: string | null = null;
   for (let i = cwd.length - 1; i >= 0; i--) {
-    if (fs.existsSync(out + "../.mist")) {
+    if (fs.existsSync(out + "../.mist/conf.json")) {
       team = cwd[i];
-      if (!fs.existsSync(`${out}../.mist/conf.json`)) throw "Bad .mist folder";
       let org = <OrgFile>(
         JSON.parse("" + fs.readFileSync(`${out}../.mist/conf.json`))
       );
@@ -97,5 +117,66 @@ export function fetchOrg() {
     folder = "/" + cwd[i] + folder;
     out += "../";
   }
-  throw "Not inside a mist organization";
+  return { org: null, team: null, pathToRoot: null };
+}
+export function fetchOrg() {
+  let res = fetchOrgRaw();
+  if (res.org === null) throw "Not inside a mist organization";
+  return res;
+}
+export function output(str: string) {
+  console.log(
+    str
+      .trimEnd()
+      .split("\n")
+      .map((x) => x.trimEnd())
+      .join("\n")
+  );
+}
+
+export function printTable<T>(
+  data: T[],
+  transform: { [header: string]: (_: T) => string }
+) {
+  let widths: { [header: string]: number } = {};
+  Object.keys(transform).forEach((k) => {
+    widths[k] = k.trim().length;
+  });
+  let mapped = data.map((row) => {
+    let result: { [header: string]: string } = {};
+    Object.keys(transform).forEach((k) => {
+      result[k] = transform[k](row);
+      widths[k] = Math.max(widths[k], result[k].length);
+    });
+    return result;
+  });
+  let header = "";
+  Object.keys(widths).forEach((k) => {
+    header += k.trim().padEnd(widths[k]) + " | ";
+  });
+  output(header);
+  let divider = "";
+  Object.keys(widths).forEach((k) => {
+    divider += "-".repeat(widths[k]) + "-+-";
+  });
+  output(divider);
+  mapped.forEach((row) => {
+    let result = "";
+    Object.keys(widths).forEach((k) => {
+      if (k.startsWith(" ")) result += row[k].padStart(widths[k]) + " | ";
+      else result += row[k].padEnd(widths[k]) + " | ";
+    });
+    output(result);
+  });
+}
+
+const historyFolder = os.homedir() + "/.mist/";
+const historyFile = "history";
+export function addToHistory(str: string) {
+  if (!fs.existsSync(historyFolder)) fs.mkdirSync(historyFolder);
+  fs.appendFileSync(historyFolder + historyFile, str.trimEnd() + "\n");
+}
+export function getHistory() {
+  if (!fs.existsSync(historyFolder + historyFile)) return [];
+  return ("" + fs.readFileSync(historyFolder + historyFile)).split("\n");
 }

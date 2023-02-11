@@ -11,16 +11,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
-class Role {
-    constructor(role, params) {
-        this.role = role;
+class Inspect {
+    constructor(id, params) {
+        this.id = id;
         this.params = params;
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`role ${this.role} ${this.params.delete} --user ${this.params.user} --org ${org.name}`));
+                console.log(JSON.parse(yield (0, utils_1.sshReq)(`inspect ${this.id} --river ${this.params.river} --org ${org.name}`)));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -29,22 +29,16 @@ class Role {
         });
     }
 }
-const CMD = "role";
+const CMD = "inspect";
 parser_1.argParser.push(CMD, {
-    desc: "Create or assign a role",
-    arg: "role",
-    construct: (arg, params) => new Role(arg, params),
+    desc: "Show detailed information about an event",
+    arg: "id",
+    construct: (arg, params) => new Inspect(arg, params),
     flags: {
-        user: {
-            arg: "user",
-            short: "u",
-            desc: "Assign the role to a user",
+        river: {
+            short: "r",
+            arg: "river",
             overrideValue: (s) => s,
-        },
-        delete: {
-            desc: "Delete the role",
-            defaultValue: "",
-            overrideValue: "--delete",
         },
     },
     isRelevant: () => {

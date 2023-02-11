@@ -1,20 +1,23 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { sshReq } from "../utils";
+import { addToHistory, output, sshReq } from "../utils";
 
 class Whoami implements Command {
   constructor() {}
   async execute() {
     try {
-      console.log(await sshReq(`whoami`));
+      output((await sshReq(`whoami`)).trim());
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("whoami", {
+const CMD = "whoami";
+argParser.push(CMD, {
   desc: "Displays the email of the current ssh key",
   construct: (arg) => new Whoami(),
   flags: {},
+  isRelevant: () => false,
 });

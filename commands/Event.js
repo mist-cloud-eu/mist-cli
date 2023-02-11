@@ -19,7 +19,8 @@ class Event {
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`event ${this.event} ${this.params.delete} --key ${this.params.key}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`event ${this.event} ${this.params.delete} --key ${this.params.key}`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -27,7 +28,8 @@ class Event {
         });
     }
 }
-parser_1.argParser.push("event", {
+const CMD = "event";
+parser_1.argParser.push(CMD, {
     desc: "Give api key permission to receive specific event type",
     arg: "event",
     construct: (arg, params) => new Event(arg, params),

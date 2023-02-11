@@ -1,24 +1,26 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { fetchOrg, sshReq } from "../utils";
+import { addToHistory, fetchOrg, fetchOrgRaw, output, sshReq } from "../utils";
 
 class Capability implements Command {
   constructor(private capability: string, private params: { role: string }) {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      console.log(
+      output(
         await sshReq(
           `capability ${this.capability} --role ${this.params.role} --org ${org.name}`
         )
       );
+      addToHistory(CMD);
     } catch (e) {
       throw e;
     }
   }
 }
 
-argParser.push("capability", {
+const CMD = "capability";
+argParser.push(CMD, {
   desc: "Add a capability to a role",
   arg: "capability",
   construct: (arg, params: { role: string }) => new Capability(arg, params),
@@ -28,5 +30,9 @@ argParser.push("capability", {
       short: "r",
       overrideValue: (s) => s,
     },
+  },
+  isRelevant: () => {
+    let { org, team } = fetchOrgRaw();
+    return org !== null;
   },
 });

@@ -28,6 +28,7 @@ class Service {
                 if (team === null)
                     throw "Cannot manage services in organization root. First create a team.";
                 yield this.params.delete.execute(this.name, team, this.params.private, org, this.params.template);
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -69,7 +70,7 @@ class NoDeleteService {
     execute(name, team, priv, org, template) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} ${priv}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} ${priv}`));
                 let repoBase = `${config_1.GIT_HOST}/${org.name}/${team}`;
                 yield template.execute(repoBase, name);
             }
@@ -83,7 +84,7 @@ class DeleteService {
     execute(name, team, priv, org, template) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} --delete`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} --delete`));
                 // fs.rmSync(name, { recursive: true, force: true });
                 if (fs_1.default.existsSync(name))
                     fs_1.default.renameSync(name, `(deleted) ${name}`);
@@ -94,7 +95,8 @@ class DeleteService {
         });
     }
 }
-parser_1.argParser.push("service", {
+const CMD = "service";
+parser_1.argParser.push(CMD, {
     desc: "Create a service",
     arg: "name",
     construct: (arg, params) => new Service(arg, params),
@@ -117,5 +119,9 @@ parser_1.argParser.push("service", {
             defaultValue: new NoDeleteService(),
             overrideValue: new DeleteService(),
         },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return team !== null && !fs_1.default.existsSync("mist.json");
     },
 });

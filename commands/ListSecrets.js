@@ -17,7 +17,10 @@ class ListSecrets {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                console.log(yield (0, utils_1.sshReq)(`list-secrets --org ${org.name}`));
+                if (team === null)
+                    throw "Cannot manage secrets in organization root. First create a team.";
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-secrets --org ${org.name} --team ${team}`));
+                (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
                 throw e;
@@ -25,8 +28,13 @@ class ListSecrets {
         });
     }
 }
-parser_1.argParser.push("list-secrets", {
-    desc: "List the secrets of an organization",
+const CMD = "list-secrets";
+parser_1.argParser.push(CMD, {
+    desc: "List the secrets of a team",
     construct: (arg, params) => new ListSecrets(),
     flags: {},
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
+    },
 });
