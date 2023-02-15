@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHistory = exports.addToHistory = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = void 0;
+exports.getHistory = exports.addToHistory = exports.fastPrintTable = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = void 0;
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
 const fs_1 = __importDefault(require("fs"));
@@ -44,8 +44,13 @@ function execStreamPromise(full, onData, cwd) {
     });
 }
 exports.execStreamPromise = execStreamPromise;
-function sshReq(cmd) {
+function sshReqInternal(cmd) {
     return execPromise(`ssh mist@${config_1.SSH_HOST} "${cmd}"`);
+}
+function sshReq(...cmd) {
+    return sshReqInternal(cmd
+        .map((x) => (x.length === 0 || x.includes(" ") ? `\\"${x}\\"` : x))
+        .join(" "));
 }
 exports.sshReq = sshReq;
 function partition(str, radix) {
@@ -143,26 +148,61 @@ function printTable(data, transform) {
     });
     let header = "";
     Object.keys(widths).forEach((k) => {
-        header += k.trim().padEnd(widths[k]) + " | ";
+        header += k.trim().padEnd(widths[k]) + " │ ";
     });
     output(header);
     let divider = "";
     Object.keys(widths).forEach((k) => {
-        divider += "-".repeat(widths[k]) + "-+-";
+        divider += "─".repeat(widths[k]) + "─┼─";
     });
     output(divider);
     mapped.forEach((row) => {
         let result = "";
         Object.keys(widths).forEach((k) => {
             if (k.startsWith(" "))
-                result += row[k].padStart(widths[k]) + " | ";
+                result += row[k].padStart(widths[k]) + " │ ";
             else
-                result += row[k].padEnd(widths[k]) + " | ";
+                result += row[k].padEnd(widths[k]) + " │ ";
         });
         output(result);
     });
 }
 exports.printTable = printTable;
+function fastPrintTable(data) {
+    if (data.length > 0) {
+        let widths = {};
+        Object.keys(data[0]).forEach((k) => (widths[k] = k.length));
+        const SAMPLES = 5;
+        for (let i = 0; i < SAMPLES; i++) {
+            let x = ~~(Math.random() * data.length);
+            Object.keys(data[x]).forEach((k) => (widths[k] = Math.max(widths[k], ("" + data[x][k]).length)));
+        }
+        output(Object.keys(data[0])
+            .map((k) => k.padEnd(widths[k]))
+            .join(" │ "));
+        output(Object.keys(data[0])
+            .map((k) => "─".repeat(widths[k]))
+            .join("─┼─"));
+        data.forEach((x) => output(Object.keys(x)
+            .map((k) => formatToWidth("" + x[k], widths[k]))
+            .join(" │ ")));
+    }
+    output(`Rows: ${data.length}`);
+}
+exports.fastPrintTable = fastPrintTable;
+function formatToWidth(str, width) {
+    var timestamp = Date.parse(str);
+    if (!isNaN(timestamp))
+        return new Date(str).toLocaleString().padEnd(width);
+    else if (str === null)
+        return " ".repeat(width);
+    else if (str.length > width)
+        return str.substring(0, width - 3) + "...";
+    else if (Number.isNaN(+str))
+        return str.padEnd(width);
+    else
+        return str.padStart(width);
+}
 const historyFolder = os_1.default.homedir() + "/.mist/";
 const historyFile = "history";
 function addToHistory(str) {

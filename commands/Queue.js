@@ -19,7 +19,7 @@ class Queue {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue ${this.count} --org ${org.name}`));
+                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue`, this.count, `--org`, org.name));
                 (0, utils_1.printTable)(data, {
                     "Message id": (x) => x.id,
                     Event: (x) => x.e,

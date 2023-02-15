@@ -22,7 +22,7 @@ class Clone {
                 let { org, team } = (0, utils_1.fetchOrgRaw)();
                 if (org !== null)
                     throw "Cannot clone an organization inside another organization.";
-                let reply = yield (0, utils_1.sshReq)(`clone ${this.name}`);
+                let reply = yield (0, utils_1.sshReq)(`clone`, this.name);
                 if (!reply.startsWith("{")) {
                     (0, utils_1.output)(reply);
                     return;

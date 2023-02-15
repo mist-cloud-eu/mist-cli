@@ -40,7 +40,7 @@ class NoDeleteTeam {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 fs_1.default.mkdirSync(name);
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team ${name} ${user} --org ${org}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team`, name, user, `--org`, org));
             }
             catch (e) {
                 throw e;
@@ -52,7 +52,7 @@ class DeleteTeam {
     execute(name, user, org) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team ${name} --delete --org ${org}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`team`, name, `--delete`, `--org`, org));
                 if (fs_1.default.existsSync(name))
                     fs_1.default.renameSync(name, `(deleted) ${name}`);
             }

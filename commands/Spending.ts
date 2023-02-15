@@ -15,7 +15,7 @@ class Spending implements Command {
     try {
       let { org, team } = fetchOrg();
       let data: { job: string; ms: number; es: string; c: string }[] =
-        JSON.parse(await sshReq(`spending --org ${org.name}`));
+        JSON.parse(await sshReq(`spending`, `--org`, org.name));
       let total = 0;
       printTable(data, {
         Job: (x) => x.job,

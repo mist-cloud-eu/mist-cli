@@ -19,7 +19,7 @@ class ListSecrets {
                 let { org, team } = (0, utils_1.fetchOrg)();
                 if (team === null)
                     throw "Cannot manage secrets in organization root. First create a team.";
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-secrets --org ${org.name} --team ${team}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-secrets`, `--org`, org.name, `--team`, team));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {

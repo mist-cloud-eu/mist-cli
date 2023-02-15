@@ -27,7 +27,7 @@ class NoDeleteTeam implements TeamDeleteArg {
   async execute(name: string, user: string, org: string) {
     try {
       fs.mkdirSync(name);
-      output(await sshReq(`team ${name} ${user} --org ${org}`));
+      output(await sshReq(`team`, name, user, `--org`, org));
     } catch (e) {
       throw e;
     }
@@ -36,7 +36,7 @@ class NoDeleteTeam implements TeamDeleteArg {
 class DeleteTeam implements TeamDeleteArg {
   async execute(name: string, user: string, org: string) {
     try {
-      output(await sshReq(`team ${name} --delete --org ${org}`));
+      output(await sshReq(`team`, name, `--delete`, `--org`, org));
       if (fs.existsSync(name)) fs.renameSync(name, `(deleted) ${name}`);
     } catch (e) {
       throw e;

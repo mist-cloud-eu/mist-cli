@@ -10,7 +10,7 @@ class Clone implements Command {
       let { org, team } = fetchOrgRaw();
       if (org !== null)
         throw "Cannot clone an organization inside another organization.";
-      let reply = await sshReq(`clone ${this.name}`);
+      let reply = await sshReq(`clone`, this.name);
       if (!reply.startsWith("{")) {
         output(reply);
         return;

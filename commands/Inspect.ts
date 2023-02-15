@@ -17,7 +17,11 @@ class Inspect implements Command {
       console.log(
         JSON.parse(
           await sshReq(
-            `inspect ${this.id} --river ${this.params.river} --org ${org.name}`
+            `inspect`,
+            this.id,
+            `--river`,
+            this.params.river,
+            `--org ${org.name}`
           )
         )
       );

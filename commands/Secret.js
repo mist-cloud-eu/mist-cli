@@ -24,7 +24,7 @@ class Secret {
                     throw "Cannot manage secrets in organization root. First create a team.";
                 if (this.params.prod === "" && this.params.test === "")
                     throw "Secret should be set in --prod, --test, or both.";
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`secret ${this.key} ${this.params.overwrite} ${this.params.prod} ${this.params.test} --org ${org.name} --team ${team} --value ${this.params.value}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`secret`, this.key, this.params.overwrite, this.params.prod, this.params.test, `--org`, org.name, `--team`, team, `--value`, this.params.value));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {

@@ -7,7 +7,7 @@ class ListRoles implements Command {
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      output(await sshReq(`list-roles --org ${org.name}`));
+      output(await sshReq(`list-roles`, `--org`, org.name));
       addToHistory(CMD);
     } catch (e) {
       throw e;

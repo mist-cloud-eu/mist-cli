@@ -40,8 +40,15 @@ export function execStreamPromise(
   });
 }
 
-export function sshReq(cmd: string) {
+function sshReqInternal(cmd: string) {
   return execPromise(`ssh mist@${SSH_HOST} "${cmd}"`);
+}
+export function sshReq(...cmd: string[]) {
+  return sshReqInternal(
+    cmd
+      .map((x) => (x.length === 0 || x.includes(" ") ? `\\"${x}\\"` : x))
+      .join(" ")
+  );
 }
 
 export function partition(str: string, radix: string) {
@@ -152,22 +159,61 @@ export function printTable<T>(
   });
   let header = "";
   Object.keys(widths).forEach((k) => {
-    header += k.trim().padEnd(widths[k]) + " | ";
+    header += k.trim().padEnd(widths[k]) + " │ ";
   });
   output(header);
   let divider = "";
   Object.keys(widths).forEach((k) => {
-    divider += "-".repeat(widths[k]) + "-+-";
+    divider += "─".repeat(widths[k]) + "─┼─";
   });
   output(divider);
   mapped.forEach((row) => {
     let result = "";
     Object.keys(widths).forEach((k) => {
-      if (k.startsWith(" ")) result += row[k].padStart(widths[k]) + " | ";
-      else result += row[k].padEnd(widths[k]) + " | ";
+      if (k.startsWith(" ")) result += row[k].padStart(widths[k]) + " │ ";
+      else result += row[k].padEnd(widths[k]) + " │ ";
     });
     output(result);
   });
+}
+export function fastPrintTable(data: { [k: string]: unknown }[]) {
+  if (data.length > 0) {
+    let widths: { [key: string]: number } = {};
+    Object.keys(data[0]).forEach((k) => (widths[k] = k.length));
+    const SAMPLES = 5;
+    for (let i = 0; i < SAMPLES; i++) {
+      let x = ~~(Math.random() * data.length);
+      Object.keys(data[x]).forEach(
+        (k) => (widths[k] = Math.max(widths[k], ("" + data[x][k]).length))
+      );
+    }
+    output(
+      Object.keys(data[0])
+        .map((k) => k.padEnd(widths[k]))
+        .join(" │ ")
+    );
+    output(
+      Object.keys(data[0])
+        .map((k) => "─".repeat(widths[k]))
+        .join("─┼─")
+    );
+    data.forEach((x) =>
+      output(
+        Object.keys(x)
+          .map((k) => formatToWidth("" + x[k], widths[k]))
+          .join(" │ ")
+      )
+    );
+  }
+  output(`Rows: ${data.length}`);
+}
+function formatToWidth(str: string, width: number) {
+  var timestamp = Date.parse(str);
+  if (!isNaN(timestamp)) return new Date(str).toLocaleString().padEnd(width);
+  else if (str === null) return " ".repeat(width);
+  else if (str.length > width) return str.substring(0, width - 3) + "...";
+  else if (Number.isNaN(+str)) return str.padEnd(width);
+  else return str.padStart(width);
 }
 
 const historyFolder = os.homedir() + "/.mist/";

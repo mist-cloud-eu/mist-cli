@@ -21,7 +21,17 @@ class Secret implements Command {
         throw "Secret should be set in --prod, --test, or both.";
       output(
         await sshReq(
-          `secret ${this.key} ${this.params.overwrite} ${this.params.prod} ${this.params.test} --org ${org.name} --team ${team} --value ${this.params.value}`
+          `secret`,
+          this.key,
+          this.params.overwrite,
+          this.params.prod,
+          this.params.test,
+          `--org`,
+          org.name,
+          `--team`,
+          team,
+          `--value`,
+          this.params.value
         )
       );
       addToHistory(CMD);

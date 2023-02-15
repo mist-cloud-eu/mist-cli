@@ -17,7 +17,7 @@ class Spending {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                let data = JSON.parse(yield (0, utils_1.sshReq)(`spending --org ${org.name}`));
+                let data = JSON.parse(yield (0, utils_1.sshReq)(`spending`, `--org`, org.name));
                 let total = 0;
                 (0, utils_1.printTable)(data, {
                     Job: (x) => x.job,

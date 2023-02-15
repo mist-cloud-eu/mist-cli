@@ -18,7 +18,7 @@ class Purge {
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`purge ${this.params.delete}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`purge`, this.params.delete));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {

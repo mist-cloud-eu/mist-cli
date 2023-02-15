@@ -16,7 +16,7 @@ class Signup implements Command {
     try {
       let { org, team } = fetchOrg();
       output(
-        await sshReq(`sign-up-for-early-access ${this.cvr} --org ${org.name}`)
+        await sshReq(`sign-up-for-early-access`, this.cvr, `--org`, org.name)
       );
       addToHistory(CMD);
     } catch (e) {

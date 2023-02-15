@@ -12,12 +12,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
 class ListKeys {
-    constructor() { }
+    constructor(params) {
+        this.params = params;
+    }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-keys --org ${org.name}`));
+                let cmd = [`list-keys`, `--org`, org.name];
+                if (this.params.active === true)
+                    cmd.push("--active");
+                if (this.params.expired === true)
+                    cmd.push("--expired");
+                (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(...cmd)));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -29,8 +36,21 @@ class ListKeys {
 const CMD = "list-keys";
 parser_1.argParser.push(CMD, {
     desc: "List the keys of an organization",
-    construct: (arg, params) => new ListKeys(),
-    flags: {},
+    construct: (arg, params) => new ListKeys(params),
+    flags: {
+        active: {
+            short: "a",
+            desc: "Display active keys only",
+            defaultValue: false,
+            overrideValue: true,
+        },
+        expired: {
+            short: "e",
+            desc: "Display expired keys only",
+            defaultValue: false,
+            overrideValue: true,
+        },
+    },
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

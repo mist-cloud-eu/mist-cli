@@ -6,7 +6,7 @@ class Purge implements Command {
   constructor(private params: { delete: string }) {}
   async execute() {
     try {
-      output(await sshReq(`purge ${this.params.delete}`));
+      output(await sshReq(`purge`, this.params.delete));
       addToHistory(CMD);
     } catch (e) {
       throw e;

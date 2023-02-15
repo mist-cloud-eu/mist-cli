@@ -15,7 +15,13 @@ class Role implements Command {
       let { org, team } = fetchOrg();
       output(
         await sshReq(
-          `role ${this.role} ${this.params.delete} --user ${this.params.user} --org ${org.name}`
+          `role`,
+          this.role,
+          this.params.delete,
+          `--user`,
+          this.params.user,
+          `--org`,
+          org.name
         )
       );
       addToHistory(CMD);

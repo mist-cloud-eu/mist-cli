@@ -44,7 +44,7 @@ function createFolderStructure(struct, prefix, org, team) {
             let repo = `"${config_1.GIT_HOST}/${org}/${team}/${k}"`;
             let dir = `${prefix}/${k}`;
             try {
-                fs_1.default.mkdirSync(`${dir}`, { recursive: true });
+                fs_1.default.mkdirSync(dir, { recursive: true });
                 yield (0, utils_1.execPromise)(`git init`, dir);
                 yield (0, utils_1.execPromise)(`git remote add origin ${repo}`, dir);
                 yield fs_1.default.writeFile(dir + "/fetch.bat", `@echo off

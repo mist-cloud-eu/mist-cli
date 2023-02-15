@@ -7,7 +7,7 @@ class ListTeams implements Command {
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      output(await sshReq(`list-teams --org ${org.name}`));
+      output(await sshReq(`list-teams`, `--org`, org.name));
       addToHistory(CMD);
     } catch (e) {
       throw e;

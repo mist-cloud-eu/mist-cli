@@ -14,7 +14,11 @@ class Event implements Command {
     try {
       output(
         await sshReq(
-          `event ${this.event} ${this.params.delete} --key ${this.params.key}`
+          `event`,
+          this.event,
+          this.params.delete,
+          `--key`,
+          this.params.key
         )
       );
       addToHistory(CMD);

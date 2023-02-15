@@ -12,13 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
 class ListEvents {
-    constructor(key) {
-        this.key = key;
+    constructor(params) {
+        this.params = params;
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`list-events ${this.key}`));
+                let { org, team } = (0, utils_1.fetchOrg)();
+                let cmd = [`list-events`, `--org`, org.name];
+                if (this.params.key !== "")
+                    cmd.push(`--key`, this.params.key);
+                (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(...cmd)));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -29,8 +33,18 @@ class ListEvents {
 }
 const CMD = "list-events";
 parser_1.argParser.push(CMD, {
-    desc: "List the events of an api key",
-    arg: "api key",
-    construct: (arg, params) => new ListEvents(arg),
-    flags: {},
+    desc: "List the events of an organization",
+    construct: (arg, params) => new ListEvents(params),
+    flags: {
+        key: {
+            short: "k",
+            arg: "key",
+            defaultValue: "",
+            overrideValue: (s) => s,
+        },
+    },
+    isRelevant: () => {
+        let { org, team } = (0, utils_1.fetchOrgRaw)();
+        return org !== null;
+    },
 });

@@ -9,7 +9,12 @@ class Capability implements Command {
       let { org, team } = fetchOrg();
       output(
         await sshReq(
-          `capability ${this.capability} --role ${this.params.role} --org ${org.name}`
+          `capability`,
+          this.capability,
+          `--role`,
+          this.params.role,
+          `--org`,
+          org.name
         )
       );
       addToHistory(CMD);

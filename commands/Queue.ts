@@ -19,7 +19,7 @@ class Queue implements Command {
         s: string;
         e: string;
         r: string;
-      }[] = JSON.parse(await sshReq(`queue ${this.count} --org ${org.name}`));
+      }[] = JSON.parse(await sshReq(`queue`, this.count, `--org`, org.name));
       printTable(data, {
         "Message id": (x) => x.id,
         Event: (x) => x.e,

@@ -9,7 +9,7 @@ class ListSecrets implements Command {
       let { org, team } = fetchOrg();
       if (team === null)
         throw "Cannot manage secrets in organization root. First create a team.";
-      output(await sshReq(`list-secrets --org ${org.name} --team ${team}`));
+      output(await sshReq(`list-secrets`, `--org`, org.name, `--team`, team));
       addToHistory(CMD);
     } catch (e) {
       throw e;

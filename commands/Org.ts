@@ -22,7 +22,7 @@ class CreateOrganization implements OrganizationArg {
       let { org, team } = fetchOrgRaw();
       if (org !== null)
         throw "Cannot create a new organization inside another organization.";
-      let reply = await sshReq(`org ${name}`);
+      let reply = await sshReq(`org`, name);
       if (!reply.startsWith("{")) {
         output(reply);
         return;

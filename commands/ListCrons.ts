@@ -9,14 +9,12 @@ import {
   fastPrintTable,
 } from "../utils";
 
-class ListServices implements Command {
-  constructor(private team: string) {}
+class ListCrons implements Command {
+  constructor() {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      fastPrintTable(
-        JSON.parse(await sshReq(`list-services`, this.team, `--org`, org.name))
-      );
+      fastPrintTable(JSON.parse(await sshReq(`list-crons`, `--org`, org.name)));
       addToHistory(CMD);
     } catch (e) {
       throw e;
@@ -24,11 +22,10 @@ class ListServices implements Command {
   }
 }
 
-const CMD = "list-services";
+const CMD = "list-crons";
 argParser.push(CMD, {
-  desc: "List the services of a team",
-  arg: "team",
-  construct: (arg, params) => new ListServices(arg),
+  desc: "List the cron jobs of an organization",
+  construct: (arg, params) => new ListCrons(),
   flags: {},
   isRelevant: () => {
     let { org, team } = fetchOrgRaw();

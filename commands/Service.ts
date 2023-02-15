@@ -84,7 +84,7 @@ class NoDeleteService implements ServiceDeleteArg {
   ) {
     try {
       output(
-        await sshReq(`service ${name} --team ${team} --org ${org.name} ${priv}`)
+        await sshReq(`service`, name, `--team`, team, `--org`, org.name, priv)
       );
       let repoBase = `${GIT_HOST}/${org.name}/${team}`;
       await template.execute(repoBase, name);

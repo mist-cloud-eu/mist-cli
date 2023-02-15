@@ -8,7 +8,7 @@ class ListUsers implements Command {
     try {
       let { org, team } = fetchOrg();
       output(
-        await sshReq(`list-users ${this.params.pending} --org ${org.name}`)
+        await sshReq(`list-users`, this.params.pending, `--org`, org.name)
       );
       addToHistory(CMD);
     } catch (e) {

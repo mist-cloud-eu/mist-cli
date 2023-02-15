@@ -28,7 +28,7 @@ class CreateOrganization {
                 let { org, team } = (0, utils_1.fetchOrgRaw)();
                 if (org !== null)
                     throw "Cannot create a new organization inside another organization.";
-                let reply = yield (0, utils_1.sshReq)(`org ${name}`);
+                let reply = yield (0, utils_1.sshReq)(`org`, name);
                 if (!reply.startsWith("{")) {
                     (0, utils_1.output)(reply);
                     return;

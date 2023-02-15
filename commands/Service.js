@@ -70,7 +70,7 @@ class NoDeleteService {
     execute(name, team, priv, org, template) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} ${priv}`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service`, name, `--team`, team, `--org`, org.name, priv));
                 let repoBase = `${config_1.GIT_HOST}/${org.name}/${team}`;
                 yield template.execute(repoBase, name);
             }

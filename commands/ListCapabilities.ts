@@ -1,13 +1,24 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { output, fetchOrg, sshReq, addToHistory, fetchOrgRaw } from "../utils";
+import {
+  output,
+  fetchOrg,
+  sshReq,
+  addToHistory,
+  fetchOrgRaw,
+  fastPrintTable,
+} from "../utils";
 
 class ListCapabilities implements Command {
   constructor(private role: string) {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      output(await sshReq(`list-capabilities ${this.role} --org ${org.name}`));
+      fastPrintTable(
+        JSON.parse(
+          await sshReq(`list-capabilities`, this.role, `--org`, org.name)
+        )
+      );
       addToHistory(CMD);
     } catch (e) {
       throw e;

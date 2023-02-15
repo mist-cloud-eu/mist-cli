@@ -35,7 +35,7 @@ function createFolderStructure(
       let repo = `"${GIT_HOST}/${org}/${team}/${k}"`;
       let dir = `${prefix}/${k}`;
       try {
-        fs.mkdirSync(`${dir}`, { recursive: true });
+        fs.mkdirSync(dir, { recursive: true });
         await execPromise(`git init`, dir);
         await execPromise(`git remote add origin ${repo}`, dir);
         await fs.writeFile(
