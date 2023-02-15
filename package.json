@@ -22,7 +22,7 @@
   "dependencies": {
     "@mist-cloud-eu/project-type-detect": "^1.1.0",
     "express": "^4.17.3",
-    "typed-cmdargs": "^3.0.0"
+    "typed-cmdargs": "^4.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
