@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHistory = exports.addToHistory = exports.fastPrintTable = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = void 0;
+exports.getHistory = exports.addToHistory = exports.fastPrintTable = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw_internal = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = void 0;
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
 const fs_1 = __importDefault(require("fs"));
@@ -97,7 +97,15 @@ function urlReq(url, method = "GET", body) {
     });
 }
 exports.urlReq = urlReq;
+let fetchOrgRaw_cache = null;
 function fetchOrgRaw() {
+    if (fetchOrgRaw_cache === null) {
+        fetchOrgRaw_cache = fetchOrgRaw_internal();
+    }
+    return fetchOrgRaw_cache;
+}
+exports.fetchOrgRaw = fetchOrgRaw;
+function fetchOrgRaw_internal() {
     if (fs_1.default.existsSync(".mist/conf.json")) {
         let org = JSON.parse("" + fs_1.default.readFileSync(`.mist/conf.json`));
         return { org, team: null, pathToRoot: "./" };
@@ -117,7 +125,7 @@ function fetchOrgRaw() {
     }
     return { org: null, team: null, pathToRoot: null };
 }
-exports.fetchOrgRaw = fetchOrgRaw;
+exports.fetchOrgRaw_internal = fetchOrgRaw_internal;
 function fetchOrg() {
     let res = fetchOrgRaw();
     if (res.org === null)

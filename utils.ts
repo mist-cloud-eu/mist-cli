@@ -103,7 +103,25 @@ export function urlReq(
   });
 }
 
+let fetchOrgRaw_cache:
+  | {
+      org: OrgFile;
+      team: string | null;
+      pathToRoot: string;
+    }
+  | {
+      org: null;
+      team: null;
+      pathToRoot: null;
+    }
+  | null = null;
 export function fetchOrgRaw() {
+  if (fetchOrgRaw_cache === null) {
+    fetchOrgRaw_cache = fetchOrgRaw_internal();
+  }
+  return fetchOrgRaw_cache;
+}
+export function fetchOrgRaw_internal() {
   if (fs.existsSync(".mist/conf.json")) {
     let org: OrgFile = JSON.parse("" + fs.readFileSync(`.mist/conf.json`));
     return { org, team: null, pathToRoot: "./" };

@@ -21,7 +21,8 @@ class Inspect implements Command {
             this.id,
             `--river`,
             this.params.river,
-            `--org ${org.name}`
+            `--org`,
+            `${org.name}`
           )
         )
       );
