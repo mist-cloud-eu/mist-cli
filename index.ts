@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { argParser } from "./parser";
-import { execPromise, output } from "./utils";
-import * as conf from "./package.json";
+import { checkVersion, execPromise, output } from "./utils";
 
 import "./commands/Build";
 import "./commands/Capability";
@@ -35,29 +34,8 @@ import "./commands/Team";
 import "./commands/Version";
 import "./commands/Whoami";
 
-function versionIsOlder(old: string, new_: string) {
-  let os = old.split(".");
-  let ns = new_.split(".");
-  if (+os[0] < +ns[0]) return true;
-  else if (+os[0] > +ns[0]) return false;
-  else if (+os[1] < +ns[1]) return true;
-  else if (+os[1] > +ns[1]) return false;
-  else if (+os[2] < +ns[2]) return true;
-  return false;
-}
-
 (async () => {
-  try {
-    let call = await execPromise(
-      "npm show @mist-cloud-eu/mist-cli dist-tags --json"
-    );
-    let version: { latest: string } = JSON.parse(call);
-    if (versionIsOlder(conf.version, version.latest)) {
-      output("New version of mist-cli available, to update run the command:");
-      output("    npm update -g @mist-cloud-eu/mist-cli");
-    }
-  } catch (e) {}
-
+  checkVersion();
   if (process.argv[0].includes("node")) process.argv.splice(0, 1);
   process.argv.splice(0, 1);
   if (process.argv.length === 0 || process.argv[0] === "help") {

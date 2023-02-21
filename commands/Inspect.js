@@ -41,6 +41,7 @@ parser_1.argParser.push(CMD, {
             overrideValue: (s) => s,
         },
     },
+    example: "inspect def52a --river init",
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

@@ -20,7 +20,7 @@ class Capability {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`capability`, this.capability, `--role`, this.params.role, `--org`, org.name));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`capability`, this.capability, `--role`, this.params.role, this.params.remove, `--org`, org.name));
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -40,7 +40,12 @@ parser_1.argParser.push(CMD, {
             short: "r",
             overrideValue: (s) => s,
         },
+        remove: {
+            defaultValue: "",
+            overrideValue: "--remove",
+        },
     },
+    example: "capability write_source_code --role Administrator",
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

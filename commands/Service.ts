@@ -46,8 +46,6 @@ class NoTemplate implements TemplateArg {
   async execute(repoBase: string, name: string) {
     try {
       await execPromise(`git clone -q "${repoBase}/${name}" ${name}`);
-      // await execPromise(`git init ${name}`);
-      // await execPromise(`git remote add origin ${repoBase}/${name}`, name);
     } catch (e) {
       throw e;
     }

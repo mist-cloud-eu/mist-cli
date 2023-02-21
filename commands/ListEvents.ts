@@ -26,7 +26,7 @@ class ListEvents implements Command {
 
 const CMD = "list-events";
 argParser.push(CMD, {
-  desc: "List the events of an organization",
+  desc: "List the events that are exposed through API keys",
   construct: (arg, params: { key: string }) => new ListEvents(params),
   flags: {
     key: {

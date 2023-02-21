@@ -12,19 +12,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
 class Queue {
-    constructor(count, params) {
-        this.count = count;
+    constructor(params) {
+        this.params = params;
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue`, this.count, `--org`, org.name));
-                (0, utils_1.printTable)(data, {
-                    "Message id": (x) => x.id,
-                    Event: (x) => x.e,
-                    River: (x) => x.r,
-                    Status: (x) => x.s,
+                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue`, `--count`, this.params.count, `--org`, org.name));
+                (0, utils_1.fastPrintTable)(data, {
+                    id: "Id",
+                    r: "River",
+                    e: "Event",
+                    s: "Status",
+                    q: "Time",
                 });
                 (0, utils_1.addToHistory)(CMD);
             }
@@ -37,9 +38,15 @@ class Queue {
 const CMD = "queue";
 parser_1.argParser.push(CMD, {
     desc: "Show status of queued requests",
-    arg: "count",
-    construct: (arg, params) => new Queue(arg, params),
-    flags: {},
+    construct: (arg, params) => new Queue(params),
+    flags: {
+        count: {
+            short: "c",
+            arg: "count",
+            defaultValue: "15",
+            overrideValue: (s) => s,
+        },
+    },
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

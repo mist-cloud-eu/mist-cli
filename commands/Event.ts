@@ -51,4 +51,5 @@ argParser.push(CMD, {
       overrideValue: "--delete",
     },
   },
+  example: "event --key xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx hello",
 });

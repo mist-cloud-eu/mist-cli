@@ -17,7 +17,8 @@ class ListCapabilities implements Command {
       fastPrintTable(
         JSON.parse(
           await sshReq(`list-capabilities`, this.role, `--org`, org.name)
-        )
+        ),
+        { name: "Name", displayName: "Description" }
       );
       addToHistory(CMD);
     } catch (e) {
@@ -32,6 +33,7 @@ argParser.push(CMD, {
   arg: "role",
   construct: (arg, params) => new ListCapabilities(arg),
   flags: {},
+  example: "list-capabilities Administrator",
   isRelevant: () => {
     let { org, team } = fetchOrgRaw();
     return org !== null;

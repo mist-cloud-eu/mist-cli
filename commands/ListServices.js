@@ -12,14 +12,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const parser_1 = require("../parser");
 const utils_1 = require("../utils");
 class ListServices {
-    constructor(team) {
-        this.team = team;
+    constructor(params) {
+        this.params = params;
     }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(`list-services`, this.team, `--org`, org.name)));
+                let cmd = [`list-services`, `--org`, org.name];
+                if (this.params.team !== "") {
+                    cmd.push(`--team`, this.params.team);
+                    (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(...cmd)), {
+                        name: "Name",
+                        teamPrivate: "Private",
+                    });
+                }
+                else {
+                    (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(...cmd)), {
+                        team: "Team",
+                        name: "Name",
+                        teamPrivate: "Private",
+                    });
+                }
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -31,9 +45,15 @@ class ListServices {
 const CMD = "list-services";
 parser_1.argParser.push(CMD, {
     desc: "List the services of a team",
-    arg: "team",
-    construct: (arg, params) => new ListServices(arg),
-    flags: {},
+    construct: (arg, params) => new ListServices(params),
+    flags: {
+        team: {
+            short: "t",
+            arg: "team",
+            defaultValue: "",
+            overrideValue: (s) => s,
+        },
+    },
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

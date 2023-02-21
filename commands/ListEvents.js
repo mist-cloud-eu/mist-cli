@@ -33,7 +33,7 @@ class ListEvents {
 }
 const CMD = "list-events";
 parser_1.argParser.push(CMD, {
-    desc: "List the events of an organization",
+    desc: "List the events that are exposed through API keys",
     construct: (arg, params) => new ListEvents(params),
     flags: {
         key: {

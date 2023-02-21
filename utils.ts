@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import { exec, spawn } from "child_process";
 import { SSH_HOST } from "./config";
+import * as conf from "./package.json";
 
 export function execPromise(cmd: string, cwd?: string) {
   // output("Executing", cmd);
@@ -194,10 +195,15 @@ export function printTable<T>(
     output(result);
   });
 }
-export function fastPrintTable(data: { [k: string]: unknown }[]) {
+export function fastPrintTable(
+  data: { [k: string]: unknown }[],
+  headers?: { [key: string]: string }
+) {
   if (data.length > 0) {
     let widths: { [key: string]: number } = {};
-    Object.keys(data[0]).forEach((k) => (widths[k] = k.length));
+    Object.keys(headers !== undefined ? headers : data[0]).forEach(
+      (k) => (widths[k] = (headers !== undefined ? headers[k] : k).length)
+    );
     const SAMPLES = 5;
     for (let i = 0; i < SAMPLES; i++) {
       let x = ~~(Math.random() * data.length);
@@ -206,18 +212,18 @@ export function fastPrintTable(data: { [k: string]: unknown }[]) {
       );
     }
     output(
-      Object.keys(data[0])
-        .map((k) => k.padEnd(widths[k]))
+      Object.keys(headers !== undefined ? headers : data[0])
+        .map((k) => (headers !== undefined ? headers[k] : k).padEnd(widths[k]))
         .join(" │ ")
     );
     output(
-      Object.keys(data[0])
+      Object.keys(headers !== undefined ? headers : data[0])
         .map((k) => "─".repeat(widths[k]))
         .join("─┼─")
     );
     data.forEach((x) =>
       output(
-        Object.keys(x)
+        Object.keys(headers !== undefined ? headers : x)
           .map((k) => formatToWidth("" + x[k], widths[k]))
           .join(" │ ")
       )
@@ -236,6 +242,7 @@ function formatToWidth(str: string, width: number) {
 
 const historyFolder = os.homedir() + "/.mist/";
 const historyFile = "history";
+const updateFile = "last_update_check";
 export function addToHistory(str: string) {
   if (!fs.existsSync(historyFolder)) fs.mkdirSync(historyFolder);
   fs.appendFileSync(historyFolder + historyFile, str.trimEnd() + "\n");
@@ -243,4 +250,35 @@ export function addToHistory(str: string) {
 export function getHistory() {
   if (!fs.existsSync(historyFolder + historyFile)) return [];
   return ("" + fs.readFileSync(historyFolder + historyFile)).split("\n");
+}
+
+function versionIsOlder(old: string, new_: string) {
+  let os = old.split(".");
+  let ns = new_.split(".");
+  if (+os[0] < +ns[0]) return true;
+  else if (+os[0] > +ns[0]) return false;
+  else if (+os[1] < +ns[1]) return true;
+  else if (+os[1] > +ns[1]) return false;
+  else if (+os[2] < +ns[2]) return true;
+  return false;
+}
+
+export async function checkVersion() {
+  if (!fs.existsSync(historyFolder)) fs.mkdirSync(historyFolder);
+  let lastCheck = fs.existsSync(historyFolder + updateFile)
+    ? +fs.readFileSync(historyFolder + updateFile).toString()
+    : 0;
+  if (Date.now() - lastCheck > 4 * 60 * 60 * 1000) {
+    try {
+      let call = await execPromise(
+        "npm show @mist-cloud-eu/mist-cli dist-tags --json"
+      );
+      let version: { latest: string } = JSON.parse(call);
+      if (versionIsOlder(conf.version, version.latest)) {
+        output("New version of mist-cli available, to update run the command:");
+        output("    npm update -g @mist-cloud-eu/mist-cli");
+      }
+    } catch (e) {}
+    fs.writeFileSync(historyFolder + updateFile, "" + Date.now());
+  }
 }

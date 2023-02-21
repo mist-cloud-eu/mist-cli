@@ -41,8 +41,6 @@ class NoTemplate {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 yield (0, utils_1.execPromise)(`git clone -q "${repoBase}/${name}" ${name}`);
-                // await execPromise(`git init ${name}`);
-                // await execPromise(`git remote add origin ${repoBase}/${name}`, name);
             }
             catch (e) {
                 throw e;

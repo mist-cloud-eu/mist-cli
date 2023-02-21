@@ -36,14 +36,23 @@ function createFolderStructure(
       let dir = `${prefix}/${k}`;
       try {
         fs.mkdirSync(dir, { recursive: true });
-        await execPromise(`git init`, dir);
+        await execPromise(`git init --initial-branch=main`, dir);
         await execPromise(`git remote add origin ${repo}`, dir);
         await fs.writeFile(
           dir + "/fetch.bat",
           `@echo off
 git fetch
 git reset --hard origin/main
-(goto) 2>nul & del "%~f0"`,
+del fetch.sh
+(goto) 2>nul & del fetch.bat`,
+          () => {}
+        );
+        await fs.writeFile(
+          dir + "/fetch.sh",
+          `#!/bin/sh
+git fetch
+git reset --hard origin/main
+rm fetch.bat fetch.sh`,
           () => {}
         );
       } catch (e) {

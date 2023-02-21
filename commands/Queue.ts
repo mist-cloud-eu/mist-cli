@@ -7,24 +7,29 @@ import {
   printTable,
   addToHistory,
   fetchOrgRaw,
+  fastPrintTable,
 } from "../utils";
 
 class Queue implements Command {
-  constructor(private count: string, params: {}) {}
+  constructor(private params: { count: string }) {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
       let data: {
         id: string;
+        q: string;
         s: string;
         e: string;
         r: string;
-      }[] = JSON.parse(await sshReq(`queue`, this.count, `--org`, org.name));
-      printTable(data, {
-        "Message id": (x) => x.id,
-        Event: (x) => x.e,
-        River: (x) => x.r,
-        Status: (x) => x.s,
+      }[] = JSON.parse(
+        await sshReq(`queue`, `--count`, this.params.count, `--org`, org.name)
+      );
+      fastPrintTable(data, {
+        id: "Id",
+        r: "River",
+        e: "Event",
+        s: "Status",
+        q: "Time",
       });
       addToHistory(CMD);
     } catch (e) {
@@ -36,9 +41,15 @@ class Queue implements Command {
 const CMD = "queue";
 argParser.push(CMD, {
   desc: "Show status of queued requests",
-  arg: "count",
-  construct: (arg, params: {}) => new Queue(arg, params),
-  flags: {},
+  construct: (arg, params: { count: string }) => new Queue(params),
+  flags: {
+    count: {
+      short: "c",
+      arg: "count",
+      defaultValue: "15",
+      overrideValue: (s) => s,
+    },
+  },
   isRelevant: () => {
     let { org, team } = fetchOrgRaw();
     return org !== null;

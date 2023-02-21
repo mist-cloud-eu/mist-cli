@@ -19,7 +19,7 @@ class ListCapabilities {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(`list-capabilities`, this.role, `--org`, org.name)));
+                (0, utils_1.fastPrintTable)(JSON.parse(yield (0, utils_1.sshReq)(`list-capabilities`, this.role, `--org`, org.name)), { name: "Name", displayName: "Description" });
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -34,6 +34,7 @@ parser_1.argParser.push(CMD, {
     arg: "role",
     construct: (arg, params) => new ListCapabilities(arg),
     flags: {},
+    example: "list-capabilities Administrator",
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;

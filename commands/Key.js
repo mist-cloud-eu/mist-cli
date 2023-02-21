@@ -62,6 +62,7 @@ parser_1.argParser.push(CMD, {
             overrideValue: (s) => s,
         },
     },
+    example: 'key "1 hour"',
     isRelevant: () => {
         let { org, team } = (0, utils_1.fetchOrgRaw)();
         return org !== null;
