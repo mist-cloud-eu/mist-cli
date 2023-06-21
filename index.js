@@ -38,7 +38,7 @@ require("./commands/Role");
 require("./commands/Run");
 require("./commands/Secret");
 require("./commands/Service");
-require("./commands/Signup");
+// import "./commands/Signup";
 require("./commands/Spending");
 require("./commands/Team");
 require("./commands/Version");

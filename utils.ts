@@ -6,6 +6,10 @@ import { exec, spawn } from "child_process";
 import { SSH_HOST } from "./config";
 import * as conf from "./package.json";
 
+export function typedKeys<T extends object>(o: T): Array<keyof T> {
+  return Object.keys(o) as any;
+}
+
 export function execPromise(cmd: string, cwd?: string) {
   // output("Executing", cmd);
   return new Promise<string>((resolve, reject) => {
@@ -231,9 +235,16 @@ export function fastPrintTable(
   }
   output(`Rows: ${data.length}`);
 }
+const MILLISECOND = 1;
+const SECOND = 1000 * MILLISECOND;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const YEAR = 365 * DAY;
 function formatToWidth(str: string, width: number) {
   var timestamp = Date.parse(str);
-  if (!isNaN(timestamp)) return new Date(str).toLocaleString().padEnd(width);
+  if (!isNaN(timestamp) && Math.abs(Date.now() - timestamp) < YEAR)
+    return new Date(str).toLocaleString().padEnd(width);
   else if (str === null) return " ".repeat(width);
   else if (str.length > width) return str.substring(0, width - 3) + "...";
   else if (Number.isNaN(+str)) return str.padEnd(width);

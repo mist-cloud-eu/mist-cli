@@ -19,7 +19,12 @@ class Queue {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                let data = JSON.parse(yield (0, utils_1.sshReq)(`queue`, `--count`, this.params.count, `--org`, org.name));
+                let cmd = [`queue`, `--count`, this.params.count, `--org`, org.name];
+                if (this.params.event !== "")
+                    cmd.push(`--event`, this.params.event);
+                if (this.params.river !== "")
+                    cmd.push(`--river`, this.params.river);
+                let data = JSON.parse(yield (0, utils_1.sshReq)(...cmd));
                 (0, utils_1.fastPrintTable)(data, {
                     id: "Id",
                     r: "River",
@@ -44,6 +49,18 @@ parser_1.argParser.push(CMD, {
             short: "c",
             arg: "count",
             defaultValue: "15",
+            overrideValue: (s) => s,
+        },
+        event: {
+            short: "e",
+            arg: "event",
+            defaultValue: "",
+            overrideValue: (s) => s,
+        },
+        river: {
+            short: "r",
+            arg: "river",
+            defaultValue: "",
             overrideValue: (s) => s,
         },
     },

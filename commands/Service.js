@@ -82,7 +82,7 @@ class DeleteService {
     execute(name, team, priv, org, template) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service ${name} --team ${team} --org ${org.name} --delete`));
+                (0, utils_1.output)(yield (0, utils_1.sshReq)(`service`, name, `--team`, team, `--org`, org.name, `--delete`));
                 // fs.rmSync(name, { recursive: true, force: true });
                 if (fs_1.default.existsSync(name))
                     fs_1.default.renameSync(name, `(deleted) ${name}`);

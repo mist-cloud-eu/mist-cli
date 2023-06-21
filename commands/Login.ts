@@ -17,7 +17,7 @@ class Login implements Command {
   async execute() {
     try {
       output(
-        `By using this product you agree to let Mistware (https://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform. We will *not* send you newsletters based on this permission, however you can sign up for mist-cloud newsletter on the website (https://mist-cloud.eu).`
+        `By using this product you agree to let Mistware (https://mistware.eu) store your email, for analytics, notifications, and identification. You can at any time retract this permission with the command "mist purge --delete," but this also excludes you from using the platform.`
       );
       output("");
       let key = await this.params.key.getKey();

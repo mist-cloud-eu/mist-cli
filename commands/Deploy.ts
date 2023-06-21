@@ -10,11 +10,11 @@ import {
 } from "../utils";
 
 class Deploy implements Command {
-  constructor() {}
+  constructor(private params: { again: string }) {}
   async execute() {
     try {
       await execStreamPromise(
-        `git add -A && (git diff-index --quiet HEAD || git commit -m 'Deploy') && git push origin HEAD 2>&1`,
+        `git add -A && ${this.params.again} && git push origin HEAD 2>&1`,
         output
       );
       addToHistory(CMD);
@@ -27,7 +27,12 @@ class Deploy implements Command {
 const CMD = "deploy";
 argParser.push(CMD, {
   desc: "Short hand for git add, commit, and push",
-  construct: (arg) => new Deploy(),
-  flags: {},
+  construct: (arg, params) => new Deploy(params),
+  flags: {
+    again: {
+      defaultValue: "(git diff-index --quiet HEAD || git commit -m 'Deploy')",
+      overrideValue: "git commit --allow-empty -m 'Redeploy'",
+    },
+  },
   isRelevant: () => fs.existsSync("mist.json"),
 });

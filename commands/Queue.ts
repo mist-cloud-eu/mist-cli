@@ -11,19 +11,22 @@ import {
 } from "../utils";
 
 class Queue implements Command {
-  constructor(private params: { count: string }) {}
+  constructor(
+    private params: { count: string; event: string; river: string }
+  ) {}
   async execute() {
     try {
       let { org, team } = fetchOrg();
+      let cmd = [`queue`, `--count`, this.params.count, `--org`, org.name];
+      if (this.params.event !== "") cmd.push(`--event`, this.params.event);
+      if (this.params.river !== "") cmd.push(`--river`, this.params.river);
       let data: {
         id: string;
         q: string;
         s: string;
         e: string;
         r: string;
-      }[] = JSON.parse(
-        await sshReq(`queue`, `--count`, this.params.count, `--org`, org.name)
-      );
+      }[] = JSON.parse(await sshReq(...cmd));
       fastPrintTable(data, {
         id: "Id",
         r: "River",
@@ -41,13 +44,26 @@ class Queue implements Command {
 const CMD = "queue";
 argParser.push(CMD, {
   desc: "Show status of queued requests",
-  construct: (arg, params: { count: string }) => new Queue(params),
+  construct: (arg, params: { count: string; event: string; river: string }) =>
+    new Queue(params),
   flags: {
     count: {
       short: "c",
       arg: "count",
       defaultValue: "15",
       overrideValue: (s) => s,
+    },
+    event: {
+      short: "e",
+      arg: "event",
+      defaultValue: "",
+      overrideValue: (s: string) => s,
+    },
+    river: {
+      short: "r",
+      arg: "river",
+      defaultValue: "",
+      overrideValue: (s: string) => s,
     },
   },
   isRelevant: () => {

@@ -35,7 +35,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkVersion = exports.getHistory = exports.addToHistory = exports.fastPrintTable = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw_internal = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = void 0;
+exports.checkVersion = exports.getHistory = exports.addToHistory = exports.fastPrintTable = exports.printTable = exports.output = exports.fetchOrg = exports.fetchOrgRaw_internal = exports.fetchOrgRaw = exports.urlReq = exports.partition = exports.sshReq = exports.execStreamPromise = exports.execPromise = exports.typedKeys = void 0;
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
 const fs_1 = __importDefault(require("fs"));
@@ -43,6 +43,10 @@ const os_1 = __importDefault(require("os"));
 const child_process_1 = require("child_process");
 const config_1 = require("./config");
 const conf = __importStar(require("./package.json"));
+function typedKeys(o) {
+    return Object.keys(o);
+}
+exports.typedKeys = typedKeys;
 function execPromise(cmd, cwd) {
     // output("Executing", cmd);
     return new Promise((resolve, reject) => {
@@ -231,9 +235,15 @@ function fastPrintTable(data, headers) {
     output(`Rows: ${data.length}`);
 }
 exports.fastPrintTable = fastPrintTable;
+const MILLISECOND = 1;
+const SECOND = 1000 * MILLISECOND;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const YEAR = 365 * DAY;
 function formatToWidth(str, width) {
     var timestamp = Date.parse(str);
-    if (!isNaN(timestamp))
+    if (!isNaN(timestamp) && Math.abs(Date.now() - timestamp) < YEAR)
         return new Date(str).toLocaleString().padEnd(width);
     else if (str === null)
         return " ".repeat(width);

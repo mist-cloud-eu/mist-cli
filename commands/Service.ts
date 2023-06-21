@@ -102,7 +102,13 @@ class DeleteService implements ServiceDeleteArg {
     try {
       output(
         await sshReq(
-          `service ${name} --team ${team} --org ${org.name} --delete`
+          `service`,
+          name,
+          `--team`,
+          team,
+          `--org`,
+          org.name,
+          `--delete`
         )
       );
       // fs.rmSync(name, { recursive: true, force: true });

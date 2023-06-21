@@ -21,7 +21,9 @@ class CreateOrganization implements OrganizationArg {
     try {
       let { org, team } = fetchOrgRaw();
       if (org !== null)
-        throw "Cannot create a new organization inside another organization.";
+        throw "Cannot create an organization inside another organization.";
+      // if (getRemote() !== null)
+      //   throw "Cannot clone an organization inside a git repository.";
       let reply = await sshReq(`org`, name);
       if (!reply.startsWith("{")) {
         output(reply);
@@ -38,7 +40,7 @@ class CreateOrganization implements OrganizationArg {
 class JoinOrganization implements OrganizationArg {
   async execute(name: string) {
     try {
-      output(await sshReq(`org ${name} --join`));
+      output(await sshReq(`org`, name, `--join`));
     } catch (e) {
       throw e;
     }
@@ -56,7 +58,7 @@ class NoDeleteOrganization implements OrganizationDeleteArg {
 class DeleteOrganization implements OrganizationDeleteArg {
   async execute(name: string, join: OrganizationArg) {
     try {
-      output(await sshReq(`org ${name} --delete`));
+      output(await sshReq(`org`, name, `--delete`));
     } catch (e) {
       throw e;
     }

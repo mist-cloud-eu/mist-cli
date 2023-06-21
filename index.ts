@@ -28,7 +28,7 @@ import "./commands/Role";
 import "./commands/Run";
 import "./commands/Secret";
 import "./commands/Service";
-import "./commands/Signup";
+// import "./commands/Signup";
 import "./commands/Spending";
 import "./commands/Team";
 import "./commands/Version";

@@ -1,8 +1,14 @@
 import { Command } from "typed-cmdargs";
 import { argParser } from "../parser";
-import { output, fetchOrg, addToHistory, fetchOrgRaw } from "../utils";
+import {
+  output,
+  fetchOrg,
+  addToHistory,
+  fetchOrgRaw,
+  typedKeys,
+} from "../utils";
 import express from "express";
-import { Request, Response } from "express";
+import { Response } from "express";
 import fs from "fs";
 import { spawn, ExecOptions } from "child_process";
 import {
@@ -10,8 +16,100 @@ import {
   ProjectType,
   RUN_COMMAND,
 } from "@mist-cloud-eu/project-type-detect";
+import http from "http";
+import { Server } from "socket.io";
+import { mkdir, readFile, rename, writeFile } from "fs/promises";
+import multer from "multer";
+import { v4 as uuid } from "uuid";
+
+const FILE_STORE_PATH = ".mist/filestore";
+const TMP_FILE_STORE_PATH = ".mist/tmp";
+
+const commonMimeTypes: { [fileExtention: string]: string[] } = {
+  aac: ["audio/aac"],
+  abw: ["application/x-abiword"],
+  arc: ["application/x-freearc"],
+  avif: ["image/avif"],
+  avi: ["video/x-msvideo"],
+  azw: ["application/vnd.amazon.ebook"],
+  bin: ["application/octet-stream"],
+  bmp: ["image/bmp"],
+  bz: ["application/x-bzip"],
+  bz2: ["application/x-bzip2"],
+  cda: ["application/x-cdf"],
+  csh: ["application/x-csh"],
+  css: ["text/css"],
+  csv: ["text/csv"],
+  doc: ["application/msword"],
+  docx: [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
+  eot: ["application/vnd.ms-fontobject"],
+  epub: ["application/epub+zip"],
+  gz: ["application/gzip"],
+  gif: ["image/gif"],
+  htm: ["text/html"],
+  html: ["text/html"],
+  ico: ["image/vnd.microsoft.icon"],
+  ics: ["text/calendar"],
+  jar: ["application/java-archive"],
+  jpeg: ["image/jpeg"],
+  jpg: ["image/jpeg"],
+  js: ["text/javascript"],
+  json: ["application/json"],
+  jsonld: ["application/ld+json"],
+  mid: ["audio/midi, audio/x-midi"],
+  midi: ["audio/midi, audio/x-midi"],
+  mjs: ["text/javascript"],
+  mp3: ["audio/mpeg"],
+  mp4: ["video/mp4"],
+  mpeg: ["video/mpeg"],
+  mpkg: ["application/vnd.apple.installer+xml"],
+  odp: ["application/vnd.oasis.opendocument.presentation"],
+  ods: ["application/vnd.oasis.opendocument.spreadsheet"],
+  odt: ["application/vnd.oasis.opendocument.text"],
+  oga: ["audio/ogg"],
+  ogv: ["video/ogg"],
+  ogx: ["application/ogg"],
+  opus: ["audio/opus"],
+  otf: ["font/otf"],
+  png: ["image/png"],
+  pdf: ["application/pdf"],
+  php: ["application/x-httpd-php"],
+  ppt: ["application/vnd.ms-powerpoint"],
+  pptx: [
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ],
+  rar: ["application/vnd.rar"],
+  rtf: ["application/rtf"],
+  sh: ["application/x-sh"],
+  svg: ["image/svg+xml"],
+  tar: ["application/x-tar"],
+  tif: ["image/tiff"],
+  tiff: ["image/tiff"],
+  ts: ["video/mp2t"],
+  ttf: ["font/ttf"],
+  txt: ["text/plain"],
+  vsd: ["application/vnd.visio"],
+  wav: ["audio/wav"],
+  weba: ["audio/webm"],
+  webm: ["video/webm"],
+  webp: ["image/webp"],
+  woff: ["font/woff"],
+  woff2: ["font/woff2"],
+  xhtml: ["application/xhtml+xml"],
+  xls: ["application/vnd.ms-excel"],
+  xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+  xml: ["application/xml", "text/xml"],
+  xul: ["application/vnd.mozilla.xul+xml"],
+  zip: ["application/zip"],
+  "3gp": ["video/3gpp", "audio/3gpp"],
+  "3g2": ["video/3gpp2", "audio/3gpp2"],
+  "7z": ["application/x-7z-compressed"],
+};
 
 class Run implements Command {
+  private io: Server | undefined;
   constructor(private params: { port: number }) {}
   async execute() {
     try {
@@ -22,37 +120,135 @@ class Run implements Command {
       teams.splice(teams.indexOf("event-catalogue"), 1);
 
       const app = express();
-      // app.use(express.json());
-      // app.use(express.urlencoded());
-      app.use(express.text({ type: "*/*" }));
+      const server = http.createServer(app);
+
+      this.io = new Server(server);
+      this.io.on("connection", (socket) => {
+        let traceId = socket.id;
+        this.runService(
+          pathToRoot,
+          this.params.port,
+          "connected",
+          Buffer.alloc(0),
+          traceId,
+          hooks,
+          undefined
+        );
+        socket.onAny((event, payload) => {
+          this.runService(
+            pathToRoot,
+            this.params.port,
+            event,
+            payload,
+            traceId,
+            hooks,
+            undefined
+          );
+        });
+      });
+
+      app.use((req, res, next) => {
+        if (req.is("multipart/form-data")) {
+          express.urlencoded({ extended: true })(req, res, next);
+        } else {
+          express.raw({ type: "*/*", limit: "10mb" })(req, res, next);
+        }
+      });
+      const upload = multer({ dest: `${pathToRoot}/${TMP_FILE_STORE_PATH}` });
+      app.use(upload.any());
 
       let hooks: PublicHooks;
 
       app.post("/trace/:traceId/:event", async (req, res) => {
-        let traceId = req.params.traceId;
-        let event = req.params.event;
-        let payload = req.body;
-        runService(this.params.port, event, payload, traceId, hooks);
-        res.send("Done");
+        try {
+          let traceId = req.params.traceId;
+          let event = req.params.event;
+          let payload: Buffer = req.body;
+          this.runService(
+            pathToRoot,
+            this.params.port,
+            event,
+            payload,
+            traceId,
+            hooks,
+            req.headers["content-type"]
+          );
+          res.send("Done");
+        } catch (e: any) {
+          if (e.data !== undefined) console.log("" + e.data);
+          else throw e;
+        }
       });
 
-      app.post("/rapids/:event", async (req, res) => {
+      app.get("/rapids/:event", async (req, res) => {
         try {
-          hooks = new PublicHooks(pathToRoot);
-          processFolders(pathToRoot, teams, hooks);
           let event = req.params.event;
-          let payload = req.body;
+          hooks = new PublicHooks(pathToRoot);
+          let payload: Buffer = Buffer.from(JSON.stringify(req.query));
+          processFolders(pathToRoot, teams, hooks);
           let traceId = "s" + Math.random();
-          let response = await runWithReply(
+          let response = await this.runWithReply(
+            pathToRoot,
             this.params.port,
             res,
             event,
             payload,
             traceId,
-            hooks
+            hooks,
+            req.headers["content-type"]
           );
-        } catch (e) {
-          throw e;
+        } catch (e: any) {
+          if (e.data !== undefined) reply(res, e, undefined);
+          else throw e;
+        }
+      });
+
+      app.all("/rapids/:event", async (req, res) => {
+        try {
+          let event = req.params.event;
+          hooks = new PublicHooks(pathToRoot);
+          let reqFiles = req.files;
+          let payload: Buffer = !Buffer.isBuffer(req.body)
+            ? typeof req.body === "object"
+              ? Buffer.from(JSON.stringify(req.body))
+              : Buffer.from(req.body)
+            : req.body;
+          if (reqFiles !== undefined) {
+            let files: Express.Multer.File[];
+            if (Array.isArray(reqFiles)) {
+              files = reqFiles;
+            } else {
+              let rf = reqFiles;
+              files = typedKeys(rf).flatMap((x) => rf[x]);
+            }
+            await hooks.validateFiles(pathToRoot, event, files);
+            payload = Buffer.from(
+              JSON.stringify({
+                files: files.map((x) => ({
+                  originalname: x.originalname,
+                  name: x.filename,
+                  type: x.mimetype,
+                  size: x.size,
+                })),
+                passthrough: payload,
+              })
+            );
+          }
+          processFolders(pathToRoot, teams, hooks);
+          let traceId = "s" + Math.random();
+          let response = await this.runWithReply(
+            pathToRoot,
+            this.params.port,
+            res,
+            event,
+            payload,
+            traceId,
+            hooks,
+            req.headers["content-type"]
+          );
+        } catch (e: any) {
+          if (e.data !== undefined) reply(res, e, undefined);
+          else throw e;
         }
       });
 
@@ -60,7 +256,7 @@ class Run implements Command {
         res.send("Running...");
       });
 
-      app.listen(this.params.port, () => {
+      server.listen(this.params.port, () => {
         output("");
         output(
           "              .8.                               8                        8 "
@@ -98,6 +294,163 @@ class Run implements Command {
       throw e;
     }
   }
+
+  runService(
+    pathToRoot: string,
+    port: number,
+    event: string,
+    payload: Buffer,
+    traceId: string,
+    hooks: PublicHooks,
+    contentType: string | undefined
+  ) {
+    if (event === "$retrieve") {
+      let conf: { file: string; emit: string; passthrough?: any } = JSON.parse(
+        payload.toString()
+      );
+      if (!fs.existsSync(`${pathToRoot}/${FILE_STORE_PATH}/${conf.file}`))
+        throw HTTP.CLIENT_ERROR.FILE_NOT_FOUND(conf.file);
+      readFile(`${pathToRoot}/${FILE_STORE_PATH}/${conf.file}`).then(
+        (content) => {
+          this.runService(
+            pathToRoot,
+            port,
+            conf.emit,
+            Buffer.from(
+              JSON.stringify({ content, passthrough: conf.passthrough })
+            ),
+            traceId,
+            hooks,
+            contentType
+          );
+        }
+      );
+    } else if (event === "$store") {
+      let conf: { contents: Buffer[]; emit: string; passthrough?: any } =
+        JSON.parse(payload.toString());
+      Promise.all(
+        conf.contents.map((content) => {
+          let buffer = Buffer.from(content);
+          let uid = uuid();
+          return writeFile(
+            `${pathToRoot}/${FILE_STORE_PATH}/${uid}`,
+            buffer
+          ).then((x) => uid);
+        })
+      ).then((uids) => {
+        this.runService(
+          pathToRoot,
+          port,
+          conf.emit,
+          Buffer.from(
+            JSON.stringify({
+              files: uids,
+              passthrough: payload,
+            })
+          ),
+          traceId,
+          hooks,
+          contentType
+        );
+      });
+    } else if (event === "$join") {
+      this.io?.sockets.sockets.get(traceId)?.join("$" + payload);
+    } else if (event === "$broadcast") {
+      let pay: { to: string; event: string; payload: any } = JSON.parse(
+        payload.toString()
+      );
+      this.io?.to("$" + pay.to).emit(pay.event, pay.payload);
+    } else if (event === "$send") {
+      let pay: { to: string; event: string; payload: any } = JSON.parse(
+        payload.toString()
+      );
+      this.io?.to(pay.to).emit(pay.event, pay.payload);
+    } else if (event === "$reply") {
+      let rs = pendingReplies[traceId];
+      if (rs !== undefined) {
+        delete pendingReplies[traceId];
+        reply(rs.resp, HTTP.SUCCESS.SINGLE_REPLY(payload), contentType);
+      }
+      let soc = this.io?.sockets.sockets.get(traceId);
+      if (soc !== undefined) {
+        soc.emit("$reply", payload);
+      }
+    }
+    let rivers = hooks.riversFor(event)?.hooks;
+    if (rivers === undefined) return;
+    let messageId = "m" + Math.random();
+    let envelope = `'${JSON.stringify({
+      messageId,
+      traceId,
+    })}'`;
+    Object.keys(rivers).forEach((river) => {
+      let services = rivers[river];
+      let service = services[~~(Math.random() * services.length)];
+      let [cmd, ...rest] = service.cmd.split(" ");
+      const args = [...rest, service.action, envelope];
+      const options: ExecOptions = {
+        cwd: service.dir,
+        env: {
+          ...process.env,
+          RAPIDS: `http://localhost:${port}/trace/${traceId}`,
+        },
+        shell: "sh",
+      };
+      if (process.env["DEBUG"]) console.log(cmd, args);
+      let ls = spawn(cmd, args, options);
+      ls.stdin.write(payload);
+      ls.stdin.end();
+      ls.stdout.on("data", (data) => {
+        timedOutput(
+          service.dir.substring(pathToRoot.length) + (": " + data).trimEnd()
+        );
+      });
+      ls.stderr.on("data", (data) => {
+        timedOutput(
+          FgRed +
+            service.dir.substring(pathToRoot.length) +
+            (": " + data).trimEnd() +
+            Reset
+        );
+      });
+    });
+  }
+
+  async runWithReply(
+    pathToRoot: string,
+    port: number,
+    resp: Response,
+    event: string,
+    payload: Buffer,
+    traceId: string,
+    hooks: PublicHooks,
+    contentType: string | undefined
+  ) {
+    try {
+      let rivers = hooks.riversFor(event);
+      if (rivers === undefined)
+        return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS, undefined);
+      this.runService(
+        pathToRoot,
+        port,
+        event,
+        payload,
+        traceId,
+        hooks,
+        contentType
+      );
+
+      pendingReplies[traceId] = { resp, replies: [] };
+      await sleep(rivers.waitFor || MAX_WAIT);
+      let pending = pendingReplies[traceId];
+      if (pending !== undefined) {
+        delete pendingReplies[traceId];
+        reply(resp, HTTP.SUCCESS.QUEUE_JOB, undefined);
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
 }
 
 const MAX_WAIT = 30000;
@@ -110,19 +463,20 @@ interface Hook {
   action: string;
 }
 let pendingReplies: {
-  [traceId: string]: { resp: Response; count?: number; replies: any[] };
+  [traceId: string]: { resp: Response; count?: number; replies: string[] };
 } = {};
 
 class PublicHooks {
   private publicEvents: {
     [event: string]: {
-      replyCount: number | undefined;
       waitFor: number | undefined;
+      fileCount: number | undefined;
+      fileSize: number | undefined;
+      mimeTypes: string[] | undefined;
     };
   };
   private hooks: {
     [event: string]: {
-      replyCount: number | undefined;
       waitFor: number | undefined;
       hooks: { [river: string]: Hook[] };
     };
@@ -137,7 +491,6 @@ class PublicHooks {
     let evt =
       this.hooks[event] ||
       (this.hooks[event] = {
-        replyCount: this.publicEvents[event]?.replyCount,
         waitFor: this.publicEvents[event]?.waitFor,
         hooks: {},
       });
@@ -147,6 +500,58 @@ class PublicHooks {
 
   riversFor(event: string) {
     return this.hooks[event];
+  }
+
+  async validateFiles(
+    pathToRoot: string,
+    event: string,
+    files: Express.Multer.File[]
+  ) {
+    let fileCount = this.publicEvents[event].fileCount;
+    if (fileCount !== undefined) {
+      if (fileCount >= 0 && files.length > fileCount) {
+        throw HTTP.CLIENT_ERROR.TOO_MANY_FILES(fileCount);
+      }
+      if (fileCount < 0 && files.length < -fileCount) {
+        throw HTTP.CLIENT_ERROR.TOO_FEW_FILES(-fileCount);
+      }
+    }
+    let fileSize = this.publicEvents[event].fileSize;
+    if (fileSize !== undefined) {
+      let fs = fileSize;
+      let tooBig = files.filter((x) => x.size > fs);
+      if (tooBig.length > 0) {
+        throw HTTP.CLIENT_ERROR.TOO_LARGE_FILES(
+          fs + "bytes", // TODO print prettier
+          tooBig.map((x) => x.originalname).join(", ")
+        );
+      }
+    }
+    let mimeTypes = this.publicEvents[event].mimeTypes;
+    if (mimeTypes !== undefined) {
+      let mt = mimeTypes.flatMap((x) => commonMimeTypes[x] || x);
+      let wrongType = files.filter(
+        (x) =>
+          !mt.includes(x.mimetype) &&
+          !mt.includes(x.mimetype.substring(0, x.mimetype.indexOf("/")) + "/*")
+      );
+      if (wrongType.length > 0) {
+        throw HTTP.CLIENT_ERROR.ILLEGAL_TYPE(
+          wrongType.map((x) => x.originalname).join(", ")
+        );
+      }
+    }
+    await mkdir(`${pathToRoot}/${FILE_STORE_PATH}`, { recursive: true }).then(
+      (x) => x
+    );
+    await Promise.all(
+      files.map((f) =>
+        rename(
+          `${pathToRoot}/${TMP_FILE_STORE_PATH}/${f.filename}`,
+          `${pathToRoot}/${FILE_STORE_PATH}/${f.filename}`
+        )
+      )
+    );
   }
 }
 
@@ -158,13 +563,14 @@ const DEFAULT_TIMEOUT = 5 * MINUTES;
 function processFolder(folder: string, hooks: PublicHooks) {
   if (fs.existsSync(`${folder}/mist.json`)) {
     let projectType: ProjectType;
+    let cmd: string;
     try {
       projectType = detectProjectType(folder);
+      cmd = RUN_COMMAND[projectType](folder);
     } catch (e) {
       console.log(e);
       return;
     }
-    let cmd = RUN_COMMAND[projectType](folder);
     let config: {
       hooks: { [key: string]: string | { action: string; timeout?: number } };
     } = JSON.parse("" + fs.readFileSync(`${folder}/mist.json`));
@@ -203,61 +609,40 @@ function timedOutput(str: string) {
   spacerTimer = setTimeout(() => output(""), 10000);
 }
 
-function runService(
-  port: number,
-  event: string,
-  payload: string,
-  traceId: string,
-  hooks: PublicHooks
-) {
-  let rs = pendingReplies[traceId];
-  if (event === "reply" && rs !== undefined) {
-    rs.replies.push(payload);
-    if (rs.count !== undefined && rs.replies.length >= rs.count) {
-      delete pendingReplies[traceId];
-      reply(rs.resp, HTTP.SUCCESS.REPLY(rs.replies));
-    }
-  }
-  let rivers = hooks.riversFor(event)?.hooks;
-  if (rivers === undefined) return;
-  let messageId = "m" + Math.random();
-  let envelope = `'${JSON.stringify({
-    payload,
-    messageId,
-    traceId,
-  })}'`;
-  Object.keys(rivers).forEach((river) => {
-    let services = rivers[river];
-    let service = services[~~(Math.random() * services.length)];
-    let [cmd, ...rest] = service.cmd.split(" ");
-    const args = [...rest, service.action, envelope];
-    const options: ExecOptions = {
-      cwd: service.dir,
-      env: {
-        ...process.env,
-        RAPIDS: `http://localhost:${port}/trace/${traceId}`,
-      },
-      shell: "sh",
-    };
-    if (process.env["DEBUG"]) console.log(cmd, args);
-    let ls = spawn(cmd, args, options);
-    ls.stdout.on("data", (data) => {
-      timedOutput(service.dir + (": " + data).trimEnd());
-    });
-    ls.stderr.on("data", (data) => {
-      timedOutput(FgRed + service.dir + (": " + data).trimEnd() + Reset);
-    });
-  });
-}
-
 module HTTP {
   export module SUCCESS {
-    export const REPLY = (data: any[]) => ({ code: 200, data });
-    export const QUEUE_JOB = { code: 200, data: "Queued" };
+    export const SINGLE_REPLY = (data: Buffer) => ({ code: 200, data });
+    export const QUEUE_JOB = { code: 200, data: Buffer.from("Queued") };
   }
   export module CLIENT_ERROR {
-    export const TIMEOUT_JOB = { code: 400, data: "Job timed out" };
-    export const NO_HOOKS = { code: 400, data: "Event has no hooks" };
+    export const TIMEOUT_JOB = {
+      code: 400,
+      data: Buffer.from("Job timed out"),
+    };
+    export const NO_HOOKS = {
+      code: 400,
+      data: Buffer.from("Event has no hooks"),
+    };
+    export const TOO_MANY_FILES = (x: number) => ({
+      code: 400,
+      data: Buffer.from(`No more than ${x} files allowed`),
+    });
+    export const TOO_FEW_FILES = (x: number) => ({
+      code: 400,
+      data: Buffer.from(`At least ${x} files required`),
+    });
+    export const TOO_LARGE_FILES = (x: string, s: string) => ({
+      code: 400,
+      data: Buffer.from(`Files exceed size limit of ${x}: ${s}`),
+    });
+    export const ILLEGAL_TYPE = (s: string) => ({
+      code: 400,
+      data: Buffer.from(`Illegal mime types: ${s}`),
+    });
+    export const FILE_NOT_FOUND = (s: string) => ({
+      code: 404,
+      data: Buffer.from(`File not found: ${s}`),
+    });
   }
 }
 
@@ -271,44 +656,12 @@ function reply(
   res: Response,
   response: {
     code: number;
-    data: any;
-  }
+    data: Buffer;
+  },
+  contentType: string | undefined
 ) {
+  if (contentType !== undefined) res.contentType(contentType);
   res.status(response.code).send(response.data);
-}
-
-async function runWithReply(
-  port: number,
-  resp: Response,
-  event: string,
-  payload: any,
-  traceId: string,
-  hooks: PublicHooks
-) {
-  try {
-    let rivers = hooks.riversFor(event);
-    if (rivers === undefined) return reply(resp, HTTP.CLIENT_ERROR.NO_HOOKS);
-    runService(port, event, payload, traceId, hooks);
-    pendingReplies[traceId] = { resp, replies: [], count: rivers.replyCount };
-    if (rivers.replyCount !== undefined) {
-      await sleep(rivers.waitFor || MAX_WAIT);
-      let rs = pendingReplies[traceId];
-      if (rs !== undefined) {
-        delete pendingReplies[traceId];
-        reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
-      }
-    } else if (rivers.waitFor !== undefined) {
-      await sleep(rivers.waitFor);
-      let rs = pendingReplies[traceId];
-      delete pendingReplies[traceId];
-      reply(resp, HTTP.SUCCESS.REPLY(rs.replies));
-    } else {
-      delete pendingReplies[traceId];
-      reply(resp, HTTP.SUCCESS.QUEUE_JOB);
-    }
-  } catch (e) {
-    throw e;
-  }
 }
 
 const CMD = "run";

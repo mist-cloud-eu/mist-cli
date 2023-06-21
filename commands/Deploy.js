@@ -16,11 +16,13 @@ const parser_1 = require("../parser");
 const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("../utils");
 class Deploy {
-    constructor() { }
+    constructor(params) {
+        this.params = params;
+    }
     execute() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield (0, utils_1.execStreamPromise)(`git add -A && (git diff-index --quiet HEAD || git commit -m 'Deploy') && git push origin HEAD 2>&1`, utils_1.output);
+                yield (0, utils_1.execStreamPromise)(`git add -A && ${this.params.again} && git push origin HEAD 2>&1`, utils_1.output);
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {
@@ -32,7 +34,12 @@ class Deploy {
 const CMD = "deploy";
 parser_1.argParser.push(CMD, {
     desc: "Short hand for git add, commit, and push",
-    construct: (arg) => new Deploy(),
-    flags: {},
+    construct: (arg, params) => new Deploy(params),
+    flags: {
+        again: {
+            defaultValue: "(git diff-index --quiet HEAD || git commit -m 'Deploy')",
+            overrideValue: "git commit --allow-empty -m 'Redeploy'",
+        },
+    },
     isRelevant: () => fs_1.default.existsSync("mist.json"),
 });
