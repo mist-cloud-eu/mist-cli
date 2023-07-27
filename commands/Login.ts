@@ -95,7 +95,7 @@ function ask(readline: RL.Interface, q: string) {
 
 const CMD = "login";
 argParser.push(CMD, {
-  desc: "Sign up an email account",
+  desc: "Attach public SSH key to account email address",
   arg: "email",
   construct: (arg, params) => new Login(arg, params),
   flags: {
