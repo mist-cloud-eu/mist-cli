@@ -14,18 +14,21 @@ class Inspect implements Command {
   async execute() {
     try {
       let { org, team } = fetchOrg();
-      console.log(
-        JSON.parse(
-          await sshReq(
-            `inspect`,
-            this.id,
-            `--river`,
-            this.params.river,
-            `--org`,
-            `${org.name}`
-          )
+      let res = JSON.parse(
+        await sshReq(
+          `inspect`,
+          this.id,
+          `--river`,
+          this.params.river,
+          `--org`,
+          `${org.name}`
         )
       );
+      let resout = res.output;
+      delete res.output;
+      output(res);
+      output("Output:");
+      output(resout);
       addToHistory(CMD);
     } catch (e) {
       throw e;

@@ -20,7 +20,12 @@ class Inspect {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 let { org, team } = (0, utils_1.fetchOrg)();
-                console.log(JSON.parse(yield (0, utils_1.sshReq)(`inspect`, this.id, `--river`, this.params.river, `--org`, `${org.name}`)));
+                let res = JSON.parse(yield (0, utils_1.sshReq)(`inspect`, this.id, `--river`, this.params.river, `--org`, `${org.name}`));
+                let resout = res.output;
+                delete res.output;
+                (0, utils_1.output)(res);
+                (0, utils_1.output)("Output:");
+                (0, utils_1.output)(resout);
                 (0, utils_1.addToHistory)(CMD);
             }
             catch (e) {

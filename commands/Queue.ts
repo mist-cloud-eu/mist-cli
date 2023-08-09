@@ -50,7 +50,7 @@ argParser.push(CMD, {
     count: {
       short: "c",
       arg: "count",
-      defaultValue: "15",
+      defaultValue: "5",
       overrideValue: (s) => s,
     },
     event: {
