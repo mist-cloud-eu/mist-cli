@@ -21,92 +21,10 @@ const project_type_detect_1 = require("@mist-cloud-eu/project-type-detect");
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const promises_1 = require("fs/promises");
-const multer_1 = __importDefault(require("multer"));
+// import multer from "multer";
 const uuid_1 = require("uuid");
 const FILE_STORE_PATH = ".mist/filestore";
 const TMP_FILE_STORE_PATH = ".mist/tmp";
-const commonMimeTypes = {
-    aac: ["audio/aac"],
-    abw: ["application/x-abiword"],
-    arc: ["application/x-freearc"],
-    avif: ["image/avif"],
-    avi: ["video/x-msvideo"],
-    azw: ["application/vnd.amazon.ebook"],
-    bin: ["application/octet-stream"],
-    bmp: ["image/bmp"],
-    bz: ["application/x-bzip"],
-    bz2: ["application/x-bzip2"],
-    cda: ["application/x-cdf"],
-    csh: ["application/x-csh"],
-    css: ["text/css"],
-    csv: ["text/csv"],
-    doc: ["application/msword"],
-    docx: [
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ],
-    eot: ["application/vnd.ms-fontobject"],
-    epub: ["application/epub+zip"],
-    gz: ["application/gzip"],
-    gif: ["image/gif"],
-    htm: ["text/html"],
-    html: ["text/html"],
-    ico: ["image/vnd.microsoft.icon"],
-    ics: ["text/calendar"],
-    jar: ["application/java-archive"],
-    jpeg: ["image/jpeg"],
-    jpg: ["image/jpeg"],
-    js: ["text/javascript"],
-    json: ["application/json"],
-    jsonld: ["application/ld+json"],
-    mid: ["audio/midi, audio/x-midi"],
-    midi: ["audio/midi, audio/x-midi"],
-    mjs: ["text/javascript"],
-    mp3: ["audio/mpeg"],
-    mp4: ["video/mp4"],
-    mpeg: ["video/mpeg"],
-    mpkg: ["application/vnd.apple.installer+xml"],
-    odp: ["application/vnd.oasis.opendocument.presentation"],
-    ods: ["application/vnd.oasis.opendocument.spreadsheet"],
-    odt: ["application/vnd.oasis.opendocument.text"],
-    oga: ["audio/ogg"],
-    ogv: ["video/ogg"],
-    ogx: ["application/ogg"],
-    opus: ["audio/opus"],
-    otf: ["font/otf"],
-    png: ["image/png"],
-    pdf: ["application/pdf"],
-    php: ["application/x-httpd-php"],
-    ppt: ["application/vnd.ms-powerpoint"],
-    pptx: [
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    ],
-    rar: ["application/vnd.rar"],
-    rtf: ["application/rtf"],
-    sh: ["application/x-sh"],
-    svg: ["image/svg+xml"],
-    tar: ["application/x-tar"],
-    tif: ["image/tiff"],
-    tiff: ["image/tiff"],
-    ts: ["video/mp2t"],
-    ttf: ["font/ttf"],
-    txt: ["text/plain"],
-    vsd: ["application/vnd.visio"],
-    wav: ["audio/wav"],
-    weba: ["audio/webm"],
-    webm: ["video/webm"],
-    webp: ["image/webp"],
-    woff: ["font/woff"],
-    woff2: ["font/woff2"],
-    xhtml: ["application/xhtml+xml"],
-    xls: ["application/vnd.ms-excel"],
-    xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
-    xml: ["application/xml", "text/xml"],
-    xul: ["application/vnd.mozilla.xul+xml"],
-    zip: ["application/zip"],
-    "3gp": ["video/3gpp", "audio/3gpp"],
-    "3g2": ["video/3gpp2", "audio/3gpp2"],
-    "7z": ["application/x-7z-compressed"],
-};
 class Run {
     constructor(params) {
         this.params = params;
@@ -129,15 +47,16 @@ class Run {
                     });
                 });
                 app.use((req, res, next) => {
-                    if (req.is("multipart/form-data")) {
+                    if (req.is("multipart/form-data") ||
+                        req.is("application/x-www-form-urlencoded")) {
                         express_1.default.urlencoded({ extended: true })(req, res, next);
                     }
                     else {
                         express_1.default.raw({ type: "*/*", limit: "10mb" })(req, res, next);
                     }
                 });
-                const upload = (0, multer_1.default)({ dest: `${pathToRoot}/${TMP_FILE_STORE_PATH}` });
-                app.use(upload.any());
+                // const upload = multer({ dest: `${pathToRoot}/${TMP_FILE_STORE_PATH}` });
+                // app.use(upload.any());
                 let hooks;
                 app.post("/trace/:traceId/:event", (req, res) => __awaiter(this, void 0, void 0, function* () {
                     try {
@@ -174,32 +93,33 @@ class Run {
                     try {
                         let event = req.params.event;
                         hooks = new PublicHooks(pathToRoot);
-                        let reqFiles = req.files;
                         let payload = !Buffer.isBuffer(req.body)
                             ? typeof req.body === "object"
                                 ? Buffer.from(JSON.stringify(req.body))
                                 : Buffer.from(req.body)
                             : req.body;
-                        if (reqFiles !== undefined) {
-                            let files;
-                            if (Array.isArray(reqFiles)) {
-                                files = reqFiles;
-                            }
-                            else {
-                                let rf = reqFiles;
-                                files = (0, utils_1.typedKeys)(rf).flatMap((x) => rf[x]);
-                            }
-                            yield hooks.validateFiles(pathToRoot, event, files);
-                            payload = Buffer.from(JSON.stringify({
-                                files: files.map((x) => ({
-                                    originalname: x.originalname,
-                                    name: x.filename,
-                                    type: x.mimetype,
-                                    size: x.size,
-                                })),
-                                passthrough: payload,
-                            }));
-                        }
+                        // let reqFiles = req.files;
+                        // if (reqFiles !== undefined) {
+                        //   let files: Express.Multer.File[];
+                        //   if (Array.isArray(reqFiles)) {
+                        //     files = reqFiles;
+                        //   } else {
+                        //     let rf = reqFiles;
+                        //     files = typedKeys(rf).flatMap((x) => rf[x]);
+                        //   }
+                        //   await hooks.validateFiles(pathToRoot, event, files);
+                        //   payload = Buffer.from(
+                        //     JSON.stringify({
+                        //       files: files.map((x) => ({
+                        //         originalname: x.originalname,
+                        //         name: x.filename,
+                        //         type: x.mimetype,
+                        //         size: x.size,
+                        //       })),
+                        //       passthrough: payload,
+                        //     })
+                        //   );
+                        // }
                         processFolders(pathToRoot, teams, hooks);
                         let traceId = "s" + Math.random();
                         let response = yield this.runWithReply(pathToRoot, this.params.port, res, event, payload, traceId, hooks, req.headers["content-type"]);
@@ -357,39 +277,6 @@ class PublicHooks {
     }
     riversFor(event) {
         return this.hooks[event];
-    }
-    validateFiles(pathToRoot, event, files) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let fileCount = this.publicEvents[event].fileCount;
-            if (fileCount !== undefined) {
-                if (fileCount >= 0 && files.length > fileCount) {
-                    throw HTTP.CLIENT_ERROR.TOO_MANY_FILES(fileCount);
-                }
-                if (fileCount < 0 && files.length < -fileCount) {
-                    throw HTTP.CLIENT_ERROR.TOO_FEW_FILES(-fileCount);
-                }
-            }
-            let fileSize = this.publicEvents[event].fileSize;
-            if (fileSize !== undefined) {
-                let fs = fileSize;
-                let tooBig = files.filter((x) => x.size > fs);
-                if (tooBig.length > 0) {
-                    throw HTTP.CLIENT_ERROR.TOO_LARGE_FILES(fs + "bytes", // TODO print prettier
-                    tooBig.map((x) => x.originalname).join(", "));
-                }
-            }
-            let mimeTypes = this.publicEvents[event].mimeTypes;
-            if (mimeTypes !== undefined) {
-                let mt = mimeTypes.flatMap((x) => commonMimeTypes[x] || x);
-                let wrongType = files.filter((x) => !mt.includes(x.mimetype) &&
-                    !mt.includes(x.mimetype.substring(0, x.mimetype.indexOf("/")) + "/*"));
-                if (wrongType.length > 0) {
-                    throw HTTP.CLIENT_ERROR.ILLEGAL_TYPE(wrongType.map((x) => x.originalname).join(", "));
-                }
-            }
-            yield (0, promises_1.mkdir)(`${pathToRoot}/${FILE_STORE_PATH}`, { recursive: true }).then((x) => x);
-            yield Promise.all(files.map((f) => (0, promises_1.rename)(`${pathToRoot}/${TMP_FILE_STORE_PATH}/${f.filename}`, `${pathToRoot}/${FILE_STORE_PATH}/${f.filename}`)));
-        });
     }
 }
 const MILLISECONDS = 1;

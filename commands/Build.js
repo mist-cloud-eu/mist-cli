@@ -42,16 +42,23 @@ class One {
     execute() {
         if (!fs_1.default.existsSync("mist.json"))
             throw "Either go into a service folder or use --all flag";
-        project_type_detect_1.BUILD_SCRIPT_MAKERS[(0, project_type_detect_1.detectProjectType)(".")](".").forEach((x) => {
+        let projectType = (0, project_type_detect_1.detectProjectType)(".");
+        project_type_detect_1.BUILD_SCRIPT_MAKERS[projectType](".").forEach((x) => {
             let [cmd, ...args] = x.split(" ");
             const options = {
                 shell: "sh",
             };
             if (process.env["DEBUG"])
                 console.log(cmd, args);
-            let ls = (0, child_process_1.spawnSync)(cmd, args, options);
+            (0, utils_1.output)(`Building ${projectType} project...`);
+            let ls = (0, child_process_1.spawn)(cmd, args, options);
+            ls.stdout.on("data", (data) => {
+                (0, utils_1.output)(data.toString());
+            });
+            ls.stderr.on("data", (data) => {
+                (0, utils_1.output)(data.toString());
+            });
         });
-        (0, utils_1.output)("Built!");
     }
 }
 const CMD = "build";

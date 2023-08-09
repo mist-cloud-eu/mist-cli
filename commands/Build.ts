@@ -32,15 +32,22 @@ class One implements AllArg {
   execute() {
     if (!fs.existsSync("mist.json"))
       throw "Either go into a service folder or use --all flag";
-    BUILD_SCRIPT_MAKERS[detectProjectType(".")](".").forEach((x) => {
+    let projectType = detectProjectType(".");
+    BUILD_SCRIPT_MAKERS[projectType](".").forEach((x) => {
       let [cmd, ...args] = x.split(" ");
       const options: ExecOptions = {
         shell: "sh",
       };
       if (process.env["DEBUG"]) console.log(cmd, args);
-      let ls = spawnSync(cmd, args, options);
+      output(`Building ${projectType} project...`);
+      let ls = spawn(cmd, args, options);
+      ls.stdout.on("data", (data: Buffer | string) => {
+        output(data.toString());
+      });
+      ls.stderr.on("data", (data: Buffer | string) => {
+        output(data.toString());
+      });
     });
-    output("Built!");
   }
 }
 
