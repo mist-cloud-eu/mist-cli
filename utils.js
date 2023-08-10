@@ -171,7 +171,7 @@ function fetchOrg() {
 }
 exports.fetchOrg = fetchOrg;
 function output(str) {
-    console.log(str
+    console.log((str || "")
         .trimEnd()
         .split("\n")
         .map((x) => x.trimEnd())
