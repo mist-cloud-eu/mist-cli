@@ -26,7 +26,7 @@ class Inspect implements Command {
       );
       let resout = res.output;
       delete res.output;
-      output(res);
+      console.log(res);
       output("Output:");
       output(resout);
       addToHistory(CMD);

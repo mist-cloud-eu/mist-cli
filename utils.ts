@@ -156,7 +156,7 @@ export function fetchOrg() {
 }
 export function output(str: string) {
   console.log(
-    (str || "")
+    str
       .trimEnd()
       .split("\n")
       .map((x) => x.trimEnd())

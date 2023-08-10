@@ -23,7 +23,7 @@ class Inspect {
                 let res = JSON.parse(yield (0, utils_1.sshReq)(`inspect`, this.id, `--river`, this.params.river, `--org`, `${org.name}`));
                 let resout = res.output;
                 delete res.output;
-                (0, utils_1.output)(res);
+                console.log(res);
                 (0, utils_1.output)("Output:");
                 (0, utils_1.output)(resout);
                 (0, utils_1.addToHistory)(CMD);
