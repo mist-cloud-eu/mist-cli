@@ -315,7 +315,8 @@ function processFolder(folder, hooks) {
             });
         });
     }
-    else if (fs_1.default.lstatSync(folder).isDirectory()) {
+    else if (!folder.endsWith(".DS_Store") &&
+        fs_1.default.lstatSync(folder).isDirectory()) {
         processFolders(folder, fs_1.default.readdirSync(folder), hooks);
     }
 }

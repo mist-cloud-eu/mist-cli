@@ -514,7 +514,10 @@ function processFolder(folder: string, hooks: PublicHooks) {
         cmd,
       });
     });
-  } else if (fs.lstatSync(folder).isDirectory()) {
+  } else if (
+    !folder.endsWith(".DS_Store") &&
+    fs.lstatSync(folder).isDirectory()
+  ) {
     processFolders(folder, fs.readdirSync(folder), hooks);
   }
 }
