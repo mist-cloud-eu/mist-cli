@@ -1,6 +1,6 @@
 {
   "name": "@mist-cloud-eu/mist-cli",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "description": "Coming soon!",
   "main": "index.js",
   "scripts": {
